@@ -1,12 +1,17 @@
 [build-system]
-requires = ["setuptools>=68.0"]
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "scanlayer"
 version = "1.0.0"
 description = "Image (scan/photo) to searchable PDF, or raw OCR export, via Tesseract."
+readme = "README.md"
 requires-python = ">=3.9"
+license = "MIT"
+authors = [
+    { name = "Hyacinthe-primus", email = "hyacintheatho91@gmail.com" },
+]
 dependencies = [
     "pytesseract>=0.3.10",
     "Pillow>=10.0.0",
@@ -22,6 +27,11 @@ yaml = ["PyYAML>=6.0"]
 
 [project.scripts]
 scanlayer = "scanlayer.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Hyacinthe-primus/scanlayer"
+Documentation = "https://Hyacinthe-primus.github.io/scanlayer/"
+Repository = "https://github.com/Hyacinthe-primus/scanlayer"
 
 [tool.setuptools.packages.find]
 include = ["scanlayer*"]
