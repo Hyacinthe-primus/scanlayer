@@ -10,7 +10,7 @@ command-line tool or as a Python library; both are the same engine underneath.
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](#)
 ![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
-[![](https://img.shields.io/badge/-documentation-green)](https://Hyacinthe-primus.github.io/)
+[![](https://img.shields.io/badge/-documentation-green)](https://Hyacinthe-primus.github.io/scanlayer/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 
 ---
@@ -42,8 +42,8 @@ each other to pick the most confident result.
 | **One configuration surface** | `configure()`, a JSON/YAML profile, or CLI flags, documented precedence |
 | **Debug overlay** | `--debug-image` draws every word, color-coded by confidence |
 
-See the [feature catalog](https://Hyacinthe-primus.github.io/) for the complete list, and
-[Roadmap & Limitations](https://Hyacinthe-primus.github.io/) for what's deliberately out of
+See the [feature catalog](https://Hyacinthe-primus.github.io/scanlayer/features.html) for the complete list, and
+[Roadmap & Limitations](https://Hyacinthe-primus.github.io/scanlayer/roadmap.html) for what's deliberately out of
 scope or not built yet.
 
 ## Requirements
@@ -65,7 +65,7 @@ brew install tesseract poppler
 
 Full detail, including how scanlayer locates the Tesseract binary
 automatically and how to bundle your own, is in
-[Installation](https://Hyacinthe-primus.github.io/) and [Bundling Tesseract](https://Hyacinthe-primus.github.io/).
+[Installation](https://Hyacinthe-primus.github.io/scanlayer/installation.html) and [Bundling Tesseract](https://Hyacinthe-primus.github.io/scanlayer/bundling-tesseract.html).
 
 ## Install
 
@@ -108,9 +108,11 @@ print(f"{result.words_count} words, {result.mean_confidence:.1f}% confidence")
 
 Every CLI flag and library keyword argument in this project are named to
 match each other (`--lang` ↔ `lang=`, `--dpi` ↔ `dpi=`, and so on), see
-[Examples](docs/examples.html) for every feature shown both ways, side by
-side, and [CLI Reference](docs/cli-reference.html) /
-[Library API](docs/library-api.html) for the complete details of each.
+[Examples](https://Hyacinthe-primus.github.io/scanlayer/examples.html) for every
+feature shown both ways, side by side, and
+[CLI Reference](https://Hyacinthe-primus.github.io/scanlayer/cli-reference.html) /
+[Library API](https://Hyacinthe-primus.github.io/scanlayer/library-api.html) for
+the complete details of each.
 
 A few more common cases:
 
@@ -149,29 +151,29 @@ scanlayer.convert("invoice.jpg", "invoice.json", output_format="json")
 
 | | |
 |---|---|
-| **[Installation](https://Hyacinthe-primus.github.io/)** | Tesseract, poppler, and the two ways to install scanlayer itself |
-| **[Examples](https://Hyacinthe-primus.github.io/)** | Every feature, CLI and library side by side |
-| **[CLI Reference](https://Hyacinthe-primus.github.io/)** | Every flag and exit code |
-| **[Library API](https://Hyacinthe-primus.github.io/)** | `convert()`, `convert_batch()`, `convert_merge()`, exceptions, and the full low-level pipeline API |
-| **[Feature Catalog](https://Hyacinthe-primus.github.io/)** | Everything scanlayer does, by pipeline stage |
-| **[Configuration](https://Hyacinthe-primus.github.io/)** | `configure()`, config files, precedence, every tunable |
-| **[Output Formats](https://Hyacinthe-primus.github.io/)** | The `pdf`/`txt`/`json`/`tsv`/`hocr` schemas |
-| **[Multi-Page & Merge](https://Hyacinthe-primus.github.io/)** | Batching, merging, native PDF input |
-| **[Debug Visualization](https://Hyacinthe-primus.github.io/)** | Reading the `--debug-image` confidence overlay |
-| **[Bundling Tesseract](https://Hyacinthe-primus.github.io/)** | Shipping your own Tesseract binary |
-| **[Troubleshooting](https://Hyacinthe-primus.github.io/)** | Common errors and fixes |
-| **[Roadmap & Limitations](https://Hyacinthe-primus.github.io/)** | What's missing and what's deliberately out of scope |
+| **[Installation](https://Hyacinthe-primus.github.io/scanlayer/installation.html)** | Tesseract, poppler, and the two ways to install scanlayer itself |
+| **[Examples](https://Hyacinthe-primus.github.io/scanlayer/examples.html)** | Every feature, CLI and library side by side |
+| **[CLI Reference](https://Hyacinthe-primus.github.io/scanlayer/cli-reference.html)** | Every flag and exit code |
+| **[Library API](https://Hyacinthe-primus.github.io/scanlayer/library-api.html)** | `convert()`, `convert_batch()`, `convert_merge()`, exceptions, and the full low-level pipeline API |
+| **[Feature Catalog](https://Hyacinthe-primus.github.io/scanlayer/features.html)** | Everything scanlayer does, by pipeline stage |
+| **[Configuration](https://Hyacinthe-primus.github.io/scanlayer/configuration.html)** | `configure()`, config files, precedence, every tunable |
+| **[Output Formats](https://Hyacinthe-primus.github.io/scanlayer/output-formats.html)** | The `pdf`/`txt`/`json`/`tsv`/`hocr` schemas |
+| **[Multi-Page & Merge](https://Hyacinthe-primus.github.io/scanlayer/multi-page-merge.html)** | Batching, merging, native PDF input |
+| **[Debug Visualization](https://Hyacinthe-primus.github.io/scanlayer/debug-visualization.html)** | Reading the `--debug-image` confidence overlay |
+| **[Bundling Tesseract](https://Hyacinthe-primus.github.io/scanlayer/bundling-tesseract.html)** | Shipping your own Tesseract binary |
+| **[Troubleshooting](https://Hyacinthe-primus.github.io/scanlayer/troubleshooting.html)** | Common errors and fixes |
+| **[Roadmap & Limitations](https://Hyacinthe-primus.github.io/scanlayer/roadmap.html)** | What's missing and what's deliberately out of scope |
 
-Open `docs/index.html` in a browser to browse the whole thing locally, or
-host the `docs/` folder as a static site (GitHub Pages, Netlify, or similar),
-since it has no build step or server-side dependency.
+The site is published from the `gh-pages` branch at
+https://Hyacinthe-primus.github.io/scanlayer/. To browse it locally, open
+`index.html` in a `gh-pages` worktree (e.g. `git worktree add <path> gh-pages`);
+it has no build step or server-side dependency.
 
 ## Repository layout
 
 ```
 .
 ├── .github/           # FUNDING.yml
-├── docs/              # documentation site (static HTML, no build step)
 ├── scanlayer/         # library source
 │   ├── __init__.py
 │   ├── __main__.py    # enables `python -m scanlayer`
@@ -199,7 +201,7 @@ Bug reports, fixes, and feature discussions are welcome: see
 [CONTRIBUTING.md](CONTRIBUTING.md) for how to set up a development
 environment and what to include in a pull request. There is a `tests/`
 directory (now including `utils/validators.py` and the `--dry-run` flag, with
-cross-platform coverage for Tesseract discovery on Windows/macOS/Linux) and it runs with `pytest`, but no CI yet; see [Roadmap & Limitations](docs/roadmap.html) and the [Adding tests](CONTRIBUTING.md#adding-tests) section of the contributing guide for where coverage is thinnest.
+cross-platform coverage for Tesseract discovery on Windows/macOS/Linux) and it runs with `pytest`, but no CI yet; see [Roadmap & Limitations](https://Hyacinthe-primus.github.io/scanlayer/roadmap.html) and the [Adding tests](CONTRIBUTING.md#adding-tests) section of the contributing guide for where coverage is thinnest.
 
 ## License
 

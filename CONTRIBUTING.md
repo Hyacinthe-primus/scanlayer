@@ -8,7 +8,7 @@ environment, and open a PR.
 
 There is a `tests/` directory covering most of the library (run it with
 `pytest`), but no CI workflow yet, see
-[Roadmap & Limitations](docs/roadmap.html). Until CI exists, also verify
+[Roadmap & Limitations](https://Hyacinthe-primus.github.io/scanlayer/roadmap.html). Until CI exists, also verify
 your change manually against a real scanned image and include what you
 tested in your PR description. If your contribution adds coverage for one
 of the gaps listed in [Adding tests](#adding-tests) below, even better.
@@ -25,7 +25,7 @@ pip install -e .
 ```
 
 You'll also need Tesseract OCR on your machine (and poppler if you're
-touching PDF-input code), see [Installation](docs/installation.html)
+touching PDF-input code), see [Installation](https://Hyacinthe-primus.github.io/scanlayer/installation.html)
 for the per-OS install commands.
 
 Verify your environment:
@@ -73,21 +73,22 @@ scanlayer/
    (`scanlayer/utils/errors.py`). If your change can fail in a new way,
    pick the right parent class rather than raising a bare `Exception`,
    and map any new library exception to a CLI exit code in `scanlayer/cli/run.py`.
-   See [CLI Reference: Exit codes](docs/cli-reference.html#exit-codes).
+   See [CLI Reference: Exit codes](https://Hyacinthe-primus.github.io/scanlayer/cli-reference.html#exit-codes).
 4. **Never let OCR-only processing touch the visual background.**
    `preprocessing/enhance.py` deliberately keeps `background` (what
    gets drawn into the PDF) and `ocr_image` (what Tesseract sees)
    separate. A denoising or contrast change for OCR accuracy should
    never alter what the reader sees in the final PDF.
-5. **Update the docs in the same PR.** This repository's documentation
-   (`docs/`, plus `README.md`) is generated from the source and wiki
-   content, not auto-synced: if you change a default, add a
-   parameter, or add a CLI flag, update the relevant page(s) by hand:
-   - New/changed CLI flag → `docs/cli-reference.html` and, if it's a
-     common case, an example in `docs/examples.html`.
-   - New/changed library parameter → `docs/library-api.html`.
-   - New/changed `config.py` default → `docs/configuration.html`.
-   - New capability entirely → `docs/features.html`.
+5. **Update the docs in the same PR.** This repository's documentation is
+   the static HTML site on the `gh-pages` branch (edit it from a worktree:
+   `git worktree add <path> gh-pages`), plus `README.md`. It is not
+   auto-synced, so if you change a default, add a parameter, or add a CLI
+   flag, update the relevant page(s) by hand:
+   - New/changed CLI flag → `cli-reference.html` and, if it's a
+     common case, an example in `examples.html`.
+   - New/changed library parameter → `library-api.html`.
+   - New/changed `config.py` default → `configuration.html`.
+   - New capability entirely → `features.html`.
 
 ## Adding tests
 
