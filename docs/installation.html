@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem("scanlayer-docs-theme");if(!t){t=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Installation · scanlayer docs</title>
+<meta name="description" content="Install scanlayer: Python package, Tesseract OCR, and poppler for native PDF input.">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="topbar">
+  <a href="index.html" class="brand">
+    <img class="brand-mark" src="assets/img/icon-256.png" alt="" width="26" height="26">
+    scanlayer
+  </a>
+  <div class="topbar-spacer"></div>
+  <nav class="topbar-links" aria-label="Primary">
+    <a href="examples.html">Examples</a>
+    <a href="library-api.html">Library</a>
+    <a href="cli-reference.html">CLI</a>
+    <a href="troubleshooting.html">Help</a>
+    <a class="gh-link" href="https://github.com/Hyacinthe-primus/scanlayer" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> GitHub</a>
+  </nav>
+  <button class="theme-toggle" type="button" aria-label="Toggle dark mode" aria-pressed="false">
+    <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.6"/><path d="M12 2.5v3M12 18.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+    <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.7A8.5 8.5 0 1 1 9.3 3.5a6.8 6.8 0 0 0 11.2 11.2Z"/></svg>
+  </button>
+  <button class="menu-btn" type="button" aria-label="Toggle navigation" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+</header>
+<div class="backdrop"></div>
+<div class="shell">
+  <aside class="sidebar">
+    <nav aria-label="Documentation"><div class="group"><div class="group-label">Overview</div><a href="index.html" class=""><span class="num">01</span>Home</a><a href="installation.html" aria-current="page" class="active"><span class="num">02</span>Installation</a><a href="examples.html" class=""><span class="num">03</span>Examples</a></div><div class="group"><div class="group-label">Reference</div><a href="cli-reference.html" class=""><span class="num">04</span>CLI Reference</a><a href="library-api.html" class=""><span class="num">05</span>Library API</a><a href="features.html" class=""><span class="num">06</span>Feature Catalog</a><a href="configuration.html" class=""><span class="num">07</span>Configuration</a></div><div class="group"><div class="group-label">Guides</div><a href="output-formats.html" class=""><span class="num">08</span>Output Formats</a><a href="multi-page-merge.html" class=""><span class="num">09</span>Multi-Page & Merge</a><a href="debug-visualization.html" class=""><span class="num">10</span>Debug Visualization</a><a href="bundling-tesseract.html" class=""><span class="num">11</span>Bundling Tesseract</a></div><div class="group"><div class="group-label">Help</div><a href="troubleshooting.html" class=""><span class="num">12</span>Troubleshooting</a><a href="roadmap.html" class=""><span class="num">13</span>Roadmap & Limitations</a><a href="contributing.html" class=""><span class="num">14</span>Contributing</a></div></nav>
+  </aside>
+  <main class="main" id="main-content">
+    <div class="content-wrap">
+  <div class="content">
+    <div class="crumb"><a href="index.html">Docs</a> / Overview</div>
+    
+<h1>Installation</h1>
+<p class="lede">scanlayer is a Python package that wraps two external binaries: Tesseract
+(required) and poppler (only if you feed it native PDF files). Get those two right first;
+the Python side is a normal <code>pip install</code>.</p>
+
+<h2 id="requirements">Requirements</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Requirement</th><th>Needed for</th></tr></thead>
+<tbody>
+<tr><td>Python 3.9+</td><td>Everything. The codebase uses <code>from __future__ import annotations</code> and PEP 604 unions.</td></tr><tr><td>Tesseract OCR</td><td>All OCR. Installed separately, see below.</td></tr><tr><td>pytesseract, Pillow, reportlab, opencv-python-headless, numpy, pdf2image</td><td>Python dependencies, installed automatically by <code>pip install scanlayer</code> (or from <code>requirements.txt</code> when running from a source checkout).</td></tr><tr><td>poppler (<code>pdftoppm</code>/<code>pdfinfo</code> on PATH)</td><td>Only if a source file is a native <code>.pdf</code> (rasterized via <code>pdf2image</code>).</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout">
+  <span class="callout-title">requirements.txt pins none of these to an exact version</span>
+  Only lower bounds are set (e.g. <code>Pillow&gt;=10.0.0</code>). If you need a fully reproducible environment, freeze a lockfile yourself after the first install.
+</div>
+
+<h2 id="tesseract">Installing Tesseract</h2>
+<p>Tesseract is a compiled binary, not something <code>pip</code> can install for you:</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th>OS</th><th>Command</th></tr></thead>
+<tbody>
+<tr><td>Debian / Ubuntu</td><td><code>apt install tesseract-ocr</code></td></tr><tr><td>macOS (Homebrew)</td><td><code>brew install tesseract</code></td></tr><tr><td>Windows</td><td>The <a href="https://github.com/tesseract-ocr/tesseract/wiki">tesseract-ocr build</a></td></tr>
+</tbody>
+</table>
+</div>
+<p>scanlayer looks for the binary automatically, in this order:</p>
+<ol>
+  <li>the <code>TESSERACT_CMD</code> environment variable</li>
+  <li>a binary bundled next to the package under <code>bin/tesseract/</code> (see <a href="bundling-tesseract.html">Bundling Tesseract</a>)</li>
+  <li>the system <code>PATH</code>, then a short list of common per-OS install locations</li>
+</ol>
+<p>If none of those find it, point at it explicitly:</p>
+<div class="tabs" id="tabs-1">
+  <div class="tab-buttons" role="tablist">
+    <button type="button" class="active" data-tab="cli" role="tab" aria-selected="true">CLI</button>
+    <button type="button" data-tab="lib" role="tab" aria-selected="false">Library</button>
+  </div>
+  <div class="tab-panel active" data-panel="cli">
+    <div class="code-block">
+  <div class="code-head"><span class="lang-tag">bash</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-bash">export TESSERACT_CMD=/path/to/tesseract     # macOS/Linux
+set TESSERACT_CMD=C:\path\to\tesseract.exe  # Windows</code></pre>
+</div>
+  </div>
+  <div class="tab-panel" data-panel="lib">
+    <div class="code-block">
+  <div class="code-head"><span class="lang-tag">python</span><span class="filename">script.py</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-python">import scanlayer
+scanlayer.configure(tesseract_cmd=&quot;/path/to/tesseract&quot;)</code></pre>
+</div>
+  </div>
+</div>
+<div class="callout warn">
+  <span class="callout-title">osd.traineddata matters</span>
+  Automatic orientation detection (rotating an upside-down or sideways page before OCR) needs <code>osd.traineddata</code> in your tessdata directory, alongside your language packs. It ships with most Tesseract installs by default, but a minimal/custom tessdata directory can be missing it: if orientation correction silently stops working, check for this file first.
+</div>
+
+<h2 id="poppler">poppler (PDF input only)</h2>
+<p>Skip this section entirely unless you plan to feed scanlayer a native <code>.pdf</code> file directly
+(it gets rasterized page-by-page before OCR). Everyday image inputs (jpg, png, tiff&hellip;) never need it.</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th>OS</th><th>Command</th></tr></thead>
+<tbody>
+<tr><td>Debian / Ubuntu</td><td><code>apt install poppler-utils</code></td></tr><tr><td>macOS (Homebrew)</td><td><code>brew install poppler</code></td></tr><tr><td>Windows</td><td>Download a poppler release and add its <code>bin/</code> folder to <code>PATH</code></td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout danger">
+  <span class="callout-title">pip install pdf2image is not enough</span>
+  <code>pdf2image</code> is a thin wrapper around the <code>pdftoppm</code>/<code>pdfinfo</code> binaries that ship with poppler; it does not vendor them. Without poppler on <code>PATH</code>, scanlayer raises a <code>DependencyError</code> naming exactly this, instead of letting a cryptic subprocess traceback surface.
+</div>
+
+<h2 id="package">Option A, install from PyPI (recommended)</h2>
+<div class="code-block">
+  <div class="code-head"><span class="lang-tag">bash</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-bash">pip install scanlayer</code></pre>
+</div>
+<p>Installs the <code>scanlayer</code> console command and makes <code>import scanlayer</code> importable
+from anywhere on the machine. This is the normal path for using scanlayer in a project; it pulls
+in all Python dependencies automatically.</p>
+
+<h2 id="checkout">Option B, run from a source checkout, no install</h2>
+<div class="code-block">
+  <div class="code-head"><span class="lang-tag">bash</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-bash">git clone https://github.com/Hyacinthe-primus/scanlayer.git
+cd scanlayer
+pip install -r requirements.txt
+python -m scanlayer invoice.jpg -o invoice.pdf</code></pre>
+</div>
+<p>No console command and no global <code>import scanlayer</code>, but everything else behaves
+identically. Every CLI example in this documentation works from a checkout, just replace
+<code>scanlayer</code> with <code>python -m scanlayer</code>. This path (and the editable
+<code>pip install -e .</code> variant) is meant for working on scanlayer itself;
+see <a href="contributing.html">Contributing</a> if that is what you are doing.</p>
+
+<h2 id="verify">Verifying the install</h2>
+<div class="tabs" id="tabs-2">
+  <div class="tab-buttons" role="tablist">
+    <button type="button" class="active" data-tab="cli" role="tab" aria-selected="true">CLI</button>
+    <button type="button" data-tab="lib" role="tab" aria-selected="false">Library</button>
+  </div>
+  <div class="tab-panel active" data-panel="cli">
+    <div class="code-block">
+  <div class="code-head"><span class="lang-tag">bash</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-bash">scanlayer --help</code></pre>
+</div>
+  </div>
+  <div class="tab-panel" data-panel="lib">
+    <div class="code-block">
+  <div class="code-head"><span class="lang-tag">python</span><span class="filename">verify.py</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-python">import scanlayer
+print(scanlayer.__version__)
+print(scanlayer.get_settings()[&quot;tesseract_cmd&quot;])</code></pre>
+</div>
+  </div>
+</div>
+<p>The second library snippet prints the Tesseract path scanlayer actually resolved, which is
+useful for confirming <em>which</em> binary it found before running a real conversion.</p>
+
+    <div class="page-footer-nav"><a href="index.html"><span class="dir">&larr; Previous</span>Home</a><a href="examples.html" class="next"><span class="dir">Next &rarr;</span>Examples</a></div>
+  </div>
+  <aside class="toc" aria-label="On this page">
+  <div class="toc-label">On this page</div>
+  <a href="#requirements">Requirements</a><a href="#tesseract">Installing Tesseract</a><a href="#poppler">poppler (PDF input only)</a><a href="#package">Option A, install from PyPI</a><a href="#checkout">Option B, run from a checkout</a><a href="#verify">Verifying the install</a>
+</aside>
+</div>
+  </main>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div>
+      <h5>scanlayer</h5>
+      <p style="color:#B7BDB6;font-size:.86rem;max-width:32ch;">
+        Scanned images and photographed documents in, searchable PDFs
+        (or raw OCR text/JSON/TSV/hOCR) out. CLI and Python library,
+        one codebase.
+      </p>
+    </div>
+    <div>
+      <h5>Docs</h5>
+      <a href="installation.html">Installation</a>
+      <a href="examples.html">Examples</a>
+      <a href="library-api.html">Library API</a>
+      <a href="cli-reference.html">CLI Reference</a>
+    </div>
+    <div>
+      <h5>Guides</h5>
+      <a href="configuration.html">Configuration</a>
+      <a href="output-formats.html">Output Formats</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="roadmap.html">Roadmap</a>
+    </div>
+    <div>
+      <h5>Project</h5>
+      <a href="contributing.html">Contributing</a>
+      <a href="https://github.com/Hyacinthe-primus/scanlayer/blob/main/LICENSE">MIT License</a>
+      <a href="https://github.com/Hyacinthe-primus/scanlayer">Source on GitHub</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>scanlayer is not affiliated with the Tesseract OCR project.</span>
+    <span>Docs built from the library source &amp; wiki.</span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

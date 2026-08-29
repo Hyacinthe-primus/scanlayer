@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem("scanlayer-docs-theme");if(!t){t=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roadmap &amp; Limitations · scanlayer docs</title>
+<meta name="description" content="Known gaps, packaging inconsistencies, and deliberate scope boundaries in scanlayer, documented directly from the source.">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="topbar">
+  <a href="index.html" class="brand">
+    <img class="brand-mark" src="assets/img/icon-256.png" alt="" width="26" height="26">
+    scanlayer
+  </a>
+  <div class="topbar-spacer"></div>
+  <nav class="topbar-links" aria-label="Primary">
+    <a href="examples.html">Examples</a>
+    <a href="library-api.html">Library</a>
+    <a href="cli-reference.html">CLI</a>
+    <a href="troubleshooting.html">Help</a>
+    <a class="gh-link" href="https://github.com/Hyacinthe-primus/scanlayer" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> GitHub</a>
+  </nav>
+  <button class="theme-toggle" type="button" aria-label="Toggle dark mode" aria-pressed="false">
+    <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.6"/><path d="M12 2.5v3M12 18.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+    <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.7A8.5 8.5 0 1 1 9.3 3.5a6.8 6.8 0 0 0 11.2 11.2Z"/></svg>
+  </button>
+  <button class="menu-btn" type="button" aria-label="Toggle navigation" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+</header>
+<div class="backdrop"></div>
+<div class="shell">
+  <aside class="sidebar">
+    <nav aria-label="Documentation"><div class="group"><div class="group-label">Overview</div><a href="index.html" class=""><span class="num">01</span>Home</a><a href="installation.html" class=""><span class="num">02</span>Installation</a><a href="examples.html" class=""><span class="num">03</span>Examples</a></div><div class="group"><div class="group-label">Reference</div><a href="cli-reference.html" class=""><span class="num">04</span>CLI Reference</a><a href="library-api.html" class=""><span class="num">05</span>Library API</a><a href="features.html" class=""><span class="num">06</span>Feature Catalog</a><a href="configuration.html" class=""><span class="num">07</span>Configuration</a></div><div class="group"><div class="group-label">Guides</div><a href="output-formats.html" class=""><span class="num">08</span>Output Formats</a><a href="multi-page-merge.html" class=""><span class="num">09</span>Multi-Page & Merge</a><a href="debug-visualization.html" class=""><span class="num">10</span>Debug Visualization</a><a href="bundling-tesseract.html" class=""><span class="num">11</span>Bundling Tesseract</a></div><div class="group"><div class="group-label">Help</div><a href="troubleshooting.html" class=""><span class="num">12</span>Troubleshooting</a><a href="roadmap.html" aria-current="page" class="active"><span class="num">13</span>Roadmap & Limitations</a><a href="contributing.html" class=""><span class="num">14</span>Contributing</a></div></nav>
+  </aside>
+  <main class="main" id="main-content">
+    <div class="content-wrap">
+  <div class="content">
+    <div class="crumb"><a href="index.html">Docs</a> / Help</div>
+    
+<h1>Roadmap &amp; Limitations</h1>
+<p class="lede">An honest list of what is missing or deliberately out of scope, written
+from reading the source directly rather than from a promise. Some of these are gaps
+worth fixing; some are boundaries the project draws on purpose. Both kinds are listed
+here so neither gets mistaken for the other, or for a bug.</p>
+
+<h2 id="packaging">Packaging</h2>
+<ul>
+<li><code>requirements.txt</code> pins no exact versions (only lower bounds), so two installs
+a few months apart are not guaranteed to resolve to identical dependency versions. There is
+no lockfile.</li>
+<li>PyYAML is an optional dependency (<code>scanlayer[yaml]</code>) needed only for
+<code>.yaml</code>/<code>.yml</code> config files; a base install without it is fully
+functional for everything else, including <code>.json</code> config files.</li>
+</ul>
+
+<h2 id="cli-gaps">CLI gaps</h2>
+<ul>
+<li>There is no <code>--version</code> / <code>-V</code> flag. Get the version from the
+library instead: <code>python -c "import scanlayer; print(scanlayer.__version__)"</code>.</li>
+<li>There is no way to pass Tesseract configuration beyond PSM, OEM, language, and the
+whitelist/blacklist (e.g. custom Tesseract config variables) short of forking the process
+launch in <code>ocr/engine.py</code>.</li>
+</ul>
+
+<h2 id="no-tests">Tests exist; CI does not</h2>
+<div class="callout warn">
+  <span class="callout-title">There is a tests/ directory, but no CI workflow</span>
+  A <code>tests/</code> directory now covers <code>config.py</code> (including platform-specific Tesseract discovery), <code>utils/validators.py</code>, <code>layout/columns.py</code>, <code>ocr/export.py</code>, <code>pdf/fonts.py</code>, <code>pdf/builder.py</code>, the <code>--dry-run</code> flag, and an end-to-end integration test in <code>main.py</code> (the last one needs a real Tesseract install and skips automatically when one isn't found). Run it with <code>pytest</code> after <code>pip install -r requirements.txt</code> (which includes <code>pytest</code>). There is still no GitHub Actions (or other CI) configuration to run these automatically on a PR, so a contribution can pass locally and still not have been checked before merge; see <a href="contributing.html">Contributing</a> for where coverage is thinnest.
+</div>
+
+<h2 id="scope">Deliberate scope boundaries</h2>
+<p>These are not bugs. They are places the pipeline stops on purpose, documented here so
+a surprising result is not mistaken for a defect.</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Area</th><th>What it does not do</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Multi-column layout</td><td>Detect or reorder table/grid layouts.</td><td>A table's narrow, per-row gutters are a structurally different problem from a two-column article; the heuristics that make prose reordering reliable (wide, consistent full-height gutters) would misfire constantly on tabular data.</td></tr><tr><td>OCR</td><td>Attempt handwriting recognition.</td><td>Tesseract's LSTM engine targets printed text; handwriting needs a different model family entirely.</td></tr><tr><td>Output formats</td><td>Offer a multi-page schema for txt/json/tsv/hocr.</td><td>There is no single obvious way to represent "page 3 of 7" in a flat text or TSV file; PDF alone supports <code>--merge</code>.</td></tr><tr><td>Export functions</td><td>Apply multi-column reordering inside <code>to_text</code>/<code>to_json</code>/<code>to_tsv</code>/<code>to_hocr</code> themselves.</td><td>That reordering happens once, upstream, in the shared pipeline (<code>convert()</code>/<code>convert_merge()</code>); calling the exporters directly on raw <code>extract_words()</code> output bypasses it, see <a href="library-api.html#low-level-api">Library API</a>.</td></tr><tr><td>Language support</td><td>Guarantee a font for every script without the caller providing one.</td><td>The automatic font selection covers a CJK CID font, bundled DejaVu Sans, and a Helvetica fallback; scripts outside that coverage (Arabic, Hebrew, Thai, Devanagari, and others) need <code>--font</code>/<code>font_path=</code> pointed at a TTF that covers them, or the invisible text layer may not render correctly for those glyphs even though OCR itself may still recognize the text.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="other">Other things to know before relying on this</h2>
+<ul>
+<li>No async API: <code>convert()</code>/<code>convert_batch()</code>/<code>convert_merge()</code>
+are synchronous and blocking. Parallelism only exists internally, across PSM candidates
+within a single file's OCR pass.</li>
+<li>No built-in retry/backoff for a failed Tesseract invocation within a batch; a per-file
+failure is recorded and the batch moves on, but that one file is not automatically retried.</li>
+<li>No streaming API for very large batches; <code>convert_batch()</code> returns one
+<code>BatchResult</code> once every file has been processed, rather than yielding results
+as they complete.</li>
+</ul>
+<div class="callout tip">
+  <span class="callout-title">Found something else missing?</span>
+  File an issue, or see <a href="contributing.html">Contributing</a> to send a fix directly.
+</div>
+
+    <div class="page-footer-nav"><a href="troubleshooting.html"><span class="dir">&larr; Previous</span>Troubleshooting</a><a href="contributing.html" class="next"><span class="dir">Next &rarr;</span>Contributing</a></div>
+  </div>
+  <aside class="toc" aria-label="On this page">
+  <div class="toc-label">On this page</div>
+  <a href="#packaging">Packaging</a><a href="#cli-gaps">CLI gaps</a><a href="#no-tests">Tests exist; CI does not</a><a href="#scope">Deliberate scope boundaries</a><a href="#other">Other things to know before relying on this</a>
+</aside>
+</div>
+  </main>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div>
+      <h5>scanlayer</h5>
+      <p style="color:#B7BDB6;font-size:.86rem;max-width:32ch;">
+        Scanned images and photographed documents in, searchable PDFs
+        (or raw OCR text/JSON/TSV/hOCR) out. CLI and Python library,
+        one codebase.
+      </p>
+    </div>
+    <div>
+      <h5>Docs</h5>
+      <a href="installation.html">Installation</a>
+      <a href="examples.html">Examples</a>
+      <a href="library-api.html">Library API</a>
+      <a href="cli-reference.html">CLI Reference</a>
+    </div>
+    <div>
+      <h5>Guides</h5>
+      <a href="configuration.html">Configuration</a>
+      <a href="output-formats.html">Output Formats</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="roadmap.html">Roadmap</a>
+    </div>
+    <div>
+      <h5>Project</h5>
+      <a href="contributing.html">Contributing</a>
+      <a href="https://github.com/Hyacinthe-primus/scanlayer/blob/main/LICENSE">MIT License</a>
+      <a href="https://github.com/Hyacinthe-primus/scanlayer">Source on GitHub</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>scanlayer is not affiliated with the Tesseract OCR project.</span>
+    <span>Docs built from the library source &amp; wiki.</span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem("scanlayer-docs-theme");if(!t){t=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Troubleshooting · scanlayer docs</title>
+<meta name="description" content="Common scanlayer errors and fixes: blank-page false positives, missing Tesseract, dependency errors, column order, and orientation.">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="topbar">
+  <a href="index.html" class="brand">
+    <img class="brand-mark" src="assets/img/icon-256.png" alt="" width="26" height="26">
+    scanlayer
+  </a>
+  <div class="topbar-spacer"></div>
+  <nav class="topbar-links" aria-label="Primary">
+    <a href="examples.html">Examples</a>
+    <a href="library-api.html">Library</a>
+    <a href="cli-reference.html">CLI</a>
+    <a href="troubleshooting.html">Help</a>
+    <a class="gh-link" href="https://github.com/Hyacinthe-primus/scanlayer" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> GitHub</a>
+  </nav>
+  <button class="theme-toggle" type="button" aria-label="Toggle dark mode" aria-pressed="false">
+    <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.6"/><path d="M12 2.5v3M12 18.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+    <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.7A8.5 8.5 0 1 1 9.3 3.5a6.8 6.8 0 0 0 11.2 11.2Z"/></svg>
+  </button>
+  <button class="menu-btn" type="button" aria-label="Toggle navigation" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+</header>
+<div class="backdrop"></div>
+<div class="shell">
+  <aside class="sidebar">
+    <nav aria-label="Documentation"><div class="group"><div class="group-label">Overview</div><a href="index.html" class=""><span class="num">01</span>Home</a><a href="installation.html" class=""><span class="num">02</span>Installation</a><a href="examples.html" class=""><span class="num">03</span>Examples</a></div><div class="group"><div class="group-label">Reference</div><a href="cli-reference.html" class=""><span class="num">04</span>CLI Reference</a><a href="library-api.html" class=""><span class="num">05</span>Library API</a><a href="features.html" class=""><span class="num">06</span>Feature Catalog</a><a href="configuration.html" class=""><span class="num">07</span>Configuration</a></div><div class="group"><div class="group-label">Guides</div><a href="output-formats.html" class=""><span class="num">08</span>Output Formats</a><a href="multi-page-merge.html" class=""><span class="num">09</span>Multi-Page & Merge</a><a href="debug-visualization.html" class=""><span class="num">10</span>Debug Visualization</a><a href="bundling-tesseract.html" class=""><span class="num">11</span>Bundling Tesseract</a></div><div class="group"><div class="group-label">Help</div><a href="troubleshooting.html" aria-current="page" class="active"><span class="num">12</span>Troubleshooting</a><a href="roadmap.html" class=""><span class="num">13</span>Roadmap & Limitations</a><a href="contributing.html" class=""><span class="num">14</span>Contributing</a></div></nav>
+  </aside>
+  <main class="main" id="main-content">
+    <div class="content-wrap">
+  <div class="content">
+    <div class="crumb"><a href="index.html">Docs</a> / Help</div>
+    
+<h1>Troubleshooting</h1>
+
+<h2 id="exit-codes">Exit codes (CLI) / exception types (library)</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Exit code</th><th>Meaning</th><th>Likely cause</th><th>Library exception</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>User error</td><td>File not found, invalid <code>--format</code>, blank page without <code>--force</code></td><td><code>InputFileError</code>, <code>OutputPathError</code>, <code>ValidationError</code>, <code>BlankPageDetectedError</code></td></tr><tr><td>2</td><td>Environment error</td><td>Tesseract missing/misconfigured, poppler missing for PDF input</td><td><code>TesseractEnvironmentError</code>, <code>DependencyError</code></td></tr><tr><td>3</td><td>Unexpected error</td><td>A bug; rerun with <code>--verbose</code> for the stack trace</td><td>any unhandled exception</td></tr><tr><td>4</td><td>Processing error</td><td>OCR or PDF stage failed operationally (e.g. a timeout)</td><td><code>PipelineError</code> (or subclass)</td></tr><tr><td>5</td><td>Partial batch failure</td><td>Multiple inputs, at least one failed</td><td>n/a, check <code>BatchResult.failures</code></td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout tip">
+  <span class="callout-title">Catching these before a batch runs</span>
+  <code>scanlayer *.jpg -o ./converted/ --dry-run</code> checks every input file, Tesseract, and output path up front and exits with the same codes above, without spending time on OCR first. See <a href="cli-reference.html#options">CLI Reference</a>.
+</div>
+
+<h2 id="blank-page">"Blank page" error on a page that has content</h2>
+<p>The blank-page check looks at grayscale standard deviation
+(<code>DESKEW_MIN_STD</code>, default 5.0), not OCR confidence, so a very light scan or a
+mostly-white page can trip it.</p>
+<div class="code-block">
+  <div class="code-head"><span class="lang-tag">bash</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-bash">scanlayer light-scan.jpg -o out.pdf --force</code></pre>
+</div>
+<p>Or lower the threshold globally if this happens often on your documents:</p>
+<div class="code-block">
+  <div class="code-head"><span class="lang-tag">python</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-python">scanlayer.configure(deskew_min_std=2.0)</code></pre>
+</div>
+<p>See <a href="configuration.html">Configuration</a>.</p>
+
+<h2 id="not-found">Tesseract not found</h2>
+<p>Set <code>TESSERACT_CMD</code> (env var or <code>scanlayer.configure(tesseract_cmd=...)</code>).
+See <a href="installation.html#tesseract">Installation</a> for the full resolution order.</p>
+
+<h2 id="pdf-dep">.pdf input fails with a dependency error</h2>
+<p>Install poppler-utils. <code>pip install pdf2image</code> alone is not enough;
+poppler is a separate system package. See <a href="installation.html#poppler">Installation</a>.</p>
+
+<h2 id="column-order">Two-column page reads out of order in the PDF text layer or export</h2>
+<p>Multi-column detection may not have triggered: it needs at least 6 text lines and a
+wide, consistent gutter (<code>COLUMN_MIN_LINES_FOR_DETECTION</code>,
+<code>COLUMN_MIN_GUTTER_FRACTION</code> in <a href="configuration.html">Configuration</a>),
+or the layout is table-like rather than prose, which this feature does not target.</p>
+
+<h2 id="missing-word">A word I expect is missing from the output</h2>
+<p>Run with <code>--debug-image</code>. If the word is not drawn at all, it was detected and
+dropped below <code>--min-confidence</code>. See <a href="debug-visualization.html">Debug Visualization</a>.</p>
+
+<h2 id="orientation">Wrong orientation in the output</h2>
+<p>Check the <code>--debug-image</code> header band for what correction was actually applied,
+then override with <code>--orientation none</code> or an exact angle if auto-detection is
+wrong for this document type. See <a href="examples.html#orientation">examples</a>.</p>
+
+<div class="callout tip">
+  <span class="callout-title">Still stuck?</span>
+  Run with <code>--verbose</code> for full logging, and check <a href="roadmap.html">Roadmap &amp; Limitations</a> in case the behavior you are seeing is a known, deliberate scope boundary rather than a bug.
+</div>
+
+    <div class="page-footer-nav"><a href="bundling-tesseract.html"><span class="dir">&larr; Previous</span>Bundling Tesseract</a><a href="roadmap.html" class="next"><span class="dir">Next &rarr;</span>Roadmap & Limitations</a></div>
+  </div>
+  <aside class="toc" aria-label="On this page">
+  <div class="toc-label">On this page</div>
+  <a href="#exit-codes">Exit codes / exception types</a><a href="#blank-page">"Blank page" on a page with content</a><a href="#not-found">Tesseract not found</a><a href="#pdf-dep">.pdf input fails with a dependency error</a><a href="#column-order">Two-column page reads out of order</a><a href="#missing-word">A word I expect is missing</a><a href="#orientation">Wrong orientation in the output</a>
+</aside>
+</div>
+  </main>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div>
+      <h5>scanlayer</h5>
+      <p style="color:#B7BDB6;font-size:.86rem;max-width:32ch;">
+        Scanned images and photographed documents in, searchable PDFs
+        (or raw OCR text/JSON/TSV/hOCR) out. CLI and Python library,
+        one codebase.
+      </p>
+    </div>
+    <div>
+      <h5>Docs</h5>
+      <a href="installation.html">Installation</a>
+      <a href="examples.html">Examples</a>
+      <a href="library-api.html">Library API</a>
+      <a href="cli-reference.html">CLI Reference</a>
+    </div>
+    <div>
+      <h5>Guides</h5>
+      <a href="configuration.html">Configuration</a>
+      <a href="output-formats.html">Output Formats</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="roadmap.html">Roadmap</a>
+    </div>
+    <div>
+      <h5>Project</h5>
+      <a href="contributing.html">Contributing</a>
+      <a href="https://github.com/Hyacinthe-primus/scanlayer/blob/main/LICENSE">MIT License</a>
+      <a href="https://github.com/Hyacinthe-primus/scanlayer">Source on GitHub</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>scanlayer is not affiliated with the Tesseract OCR project.</span>
+    <span>Docs built from the library source &amp; wiki.</span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

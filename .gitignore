@@ -3,4 +3,3 @@
 .mypy_cache/
 __pycache__/
 .vscode/
-docs/

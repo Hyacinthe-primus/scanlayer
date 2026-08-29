@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem("scanlayer-docs-theme");if(!t){t=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";}document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configuration · scanlayer docs</title>
+<meta name="description" content="How scanlayer settings are resolved: configure(), config files, precedence, and every tunable by pipeline stage.">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="topbar">
+  <a href="index.html" class="brand">
+    <img class="brand-mark" src="assets/img/icon-256.png" alt="" width="26" height="26">
+    scanlayer
+  </a>
+  <div class="topbar-spacer"></div>
+  <nav class="topbar-links" aria-label="Primary">
+    <a href="examples.html">Examples</a>
+    <a href="library-api.html">Library</a>
+    <a href="cli-reference.html">CLI</a>
+    <a href="troubleshooting.html">Help</a>
+    <a class="gh-link" href="https://github.com/Hyacinthe-primus/scanlayer" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> GitHub</a>
+  </nav>
+  <button class="theme-toggle" type="button" aria-label="Toggle dark mode" aria-pressed="false">
+    <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.6"/><path d="M12 2.5v3M12 18.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+    <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.7A8.5 8.5 0 1 1 9.3 3.5a6.8 6.8 0 0 0 11.2 11.2Z"/></svg>
+  </button>
+  <button class="menu-btn" type="button" aria-label="Toggle navigation" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+</header>
+<div class="backdrop"></div>
+<div class="shell">
+  <aside class="sidebar">
+    <nav aria-label="Documentation"><div class="group"><div class="group-label">Overview</div><a href="index.html" class=""><span class="num">01</span>Home</a><a href="installation.html" class=""><span class="num">02</span>Installation</a><a href="examples.html" class=""><span class="num">03</span>Examples</a></div><div class="group"><div class="group-label">Reference</div><a href="cli-reference.html" class=""><span class="num">04</span>CLI Reference</a><a href="library-api.html" class=""><span class="num">05</span>Library API</a><a href="features.html" class=""><span class="num">06</span>Feature Catalog</a><a href="configuration.html" aria-current="page" class="active"><span class="num">07</span>Configuration</a></div><div class="group"><div class="group-label">Guides</div><a href="output-formats.html" class=""><span class="num">08</span>Output Formats</a><a href="multi-page-merge.html" class=""><span class="num">09</span>Multi-Page & Merge</a><a href="debug-visualization.html" class=""><span class="num">10</span>Debug Visualization</a><a href="bundling-tesseract.html" class=""><span class="num">11</span>Bundling Tesseract</a></div><div class="group"><div class="group-label">Help</div><a href="troubleshooting.html" class=""><span class="num">12</span>Troubleshooting</a><a href="roadmap.html" class=""><span class="num">13</span>Roadmap & Limitations</a><a href="contributing.html" class=""><span class="num">14</span>Contributing</a></div></nav>
+  </aside>
+  <main class="main" id="main-content">
+    <div class="content-wrap">
+  <div class="content">
+    <div class="crumb"><a href="index.html">Docs</a> / Reference</div>
+    
+<h1>Configuration</h1>
+<p class="lede">Most tunables live in <code>config.py</code>, grouped by pipeline stage.
+Editing that file directly only works from a source checkout; once installed via
+<code>pip</code>, it lives in <code>site-packages</code> and is not meant to be touched.
+Use <code>configure()</code> or a config file instead.</p>
+
+<h2 id="configure">scanlayer.configure(**overrides)</h2>
+<div class="code-block">
+  <div class="code-head"><span class="lang-tag">python</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-python">import scanlayer
+scanlayer.configure(lang=&quot;eng&quot;, min_word_confidence=40)</code></pre>
+</div>
+<p>Raises <code>ValueError</code> on an unknown key, so a typo fails loudly instead of
+silently doing nothing.</p>
+<div class="callout">
+  <span class="callout-title">Accepted keys</span>
+  tesseract_cmd, tessdata_dir, lang, default_dpi, min_word_confidence, psm_candidates, psm_early_exit_confidence, psm_parallel, psm_max_workers, ocr_timeout_seconds, char_whitelist, char_blacklist, jpeg_quality, font_path, log_level, log_timing, multi_column_detection, column_min_gutter_fraction, column_gutter_vote_fraction, column_full_width_line_fraction, column_min_lines_for_detection
+</div>
+
+<h2 id="config-file">Config files</h2>
+<div class="tabs" id="tabs-1">
+  <div class="tab-buttons" role="tablist">
+    <button type="button" class="active" data-tab="cli" role="tab" aria-selected="true">CLI</button>
+    <button type="button" data-tab="lib" role="tab" aria-selected="false">Library</button>
+  </div>
+  <div class="tab-panel active" data-panel="cli">
+    <div class="code-block">
+  <div class="code-head"><span class="lang-tag">bash</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-bash">scanlayer invoice.jpg -o invoice.pdf --config settings.json</code></pre>
+</div>
+  </div>
+  <div class="tab-panel" data-panel="lib">
+    <div class="code-block">
+  <div class="code-head"><span class="lang-tag">python</span><span class="filename">apply_config.py</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-python">scanlayer.configure_from_file(&quot;profile.yaml&quot;)
+scanlayer.configure(lang=&quot;eng&quot;)  # override specific keys afterward</code></pre>
+</div>
+  </div>
+</div>
+<div class="code-block">
+  <div class="code-head"><span class="lang-tag">json</span><span class="filename">settings.json</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-json">{
+  &quot;tesseract_cmd&quot;: &quot;/usr/bin/tesseract&quot;,
+  &quot;lang&quot;: &quot;fra+eng&quot;,
+  &quot;default_dpi&quot;: 300,
+  &quot;min_word_confidence&quot;: 40,
+  &quot;psm_candidates&quot;: [3, 4, 6, 11],
+  &quot;multi_column_detection&quot;: true,
+  &quot;jpeg_quality&quot;: 82,
+  &quot;log_level&quot;: &quot;INFO&quot;
+}</code></pre>
+</div>
+<p>The same profile as YAML, if you've installed the <code>yaml</code> extra:</p>
+<div class="code-block">
+  <div class="code-head"><span class="lang-tag">yaml</span><span class="filename">profile.yaml</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-yaml">tesseract_cmd: /usr/bin/tesseract
+lang: fra+eng
+default_dpi: 300
+min_word_confidence: 40
+psm_candidates: [3, 4, 6, 11]
+multi_column_detection: true
+jpeg_quality: 82
+log_level: INFO</code></pre>
+</div>
+<p>Every key here matches a <code>configure()</code> keyword argument one-for-one; see
+<a href="#tunables">Key tunables by stage</a> below for the full list and what each one does.</p>
+<div class="callout warn">
+  <span class="callout-title">YAML needs an extra dependency</span>
+  A <code>.yaml</code>/<code>.yml</code> config file requires PyYAML, which scanlayer does <em>not</em> install by default. Install it with <code>pip install scanlayer[yaml]</code>, or with plain <code>pip install pyyaml</code> from a checkout. Use a <code>.json</code> config file instead if you would rather not add the dependency; the two formats are otherwise interchangeable.
+</div>
+
+<h2 id="precedence">Precedence (highest to lowest)</h2>
+<ol>
+  <li>Arguments passed directly to <code>convert()</code> (<code>lang=</code>, <code>dpi=</code>, &hellip;), or the equivalent CLI flags</li>
+  <li><code>scanlayer.configure(...)</code> calls made at runtime, or a <code>--config</code> file (a CLI-supplied config file is applied before other CLI flags, so a flag still overrides it)</li>
+  <li>Environment variables (<code>TESSERACT_CMD</code>, <code>SCANLAYER_LOG_LEVEL</code>, &hellip;), read once at import time</li>
+  <li>Hardcoded defaults in <code>config.py</code></li>
+</ol>
+
+<h2 id="tunables">Key tunables by stage</h2>
+
+<h3>OCR</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Setting</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td><code>DEFAULT_OCR_LANG</code></td><td><code>"fra+eng"</code></td></tr><tr><td><code>MIN_WORD_CONFIDENCE</code></td><td><code>35</code></td></tr><tr><td><code>TESSERACT_PSM_CANDIDATES</code></td><td><code>[3, 4, 6, 11]</code>, see <a href="cli-reference.html">CLI Reference</a></td></tr><tr><td><code>PSM_EARLY_EXIT_CONFIDENCE</code></td><td><code>80.0</code></td></tr><tr><td><code>PSM_PARALLEL</code></td><td><code>True</code></td></tr><tr><td><code>PSM_MAX_WORKERS</code></td><td>unset (thread-pool default)</td></tr><tr><td><code>OCR_TIMEOUT_SECONDS</code></td><td><code>45</code></td></tr><tr><td><code>TESSERACT_OEM</code></td><td><code>1</code> (LSTM only)</td></tr><tr><td><code>TESSERACT_CHAR_WHITELIST</code> / <code>_BLACKLIST</code></td><td><code>None</code></td></tr><tr><td><code>DROP_NON_PRINTABLE_WORDS</code></td><td><code>True</code>, drops words containing non-printable/control characters</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Image preprocessing</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Setting</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td><code>OCR_UPSCALE_MIN_WIDTH</code></td><td><code>2500</code></td></tr><tr><td><code>OCR_DOWNSCALE_MAX_WIDTH</code></td><td><code>3500</code></td></tr><tr><td><code>APPLY_EXIF_ORIENTATION</code></td><td><code>True</code></td></tr><tr><td><code>UNSHARP_AMOUNT</code> / <code>UNSHARP_SIGMA</code></td><td><code>0.5</code> / <code>1.2</code></td></tr><tr><td><code>DENOISING_H</code></td><td><code>10</code></td></tr><tr><td><code>CLAHE_CLIP_LIMIT</code> / <code>CLAHE_TILE_GRID</code></td><td><code>2.0</code> / <code>(8, 8)</code></td></tr><tr><td><code>DESKEW_MIN_PIXELS</code></td><td><code>100</code></td></tr><tr><td><code>DESKEW_MIN_STD</code></td><td><code>5.0</code>, the blank-page threshold</td></tr><tr><td><code>DESKEW_MIN_ANGLE</code></td><td><code>0.3</code>&deg;</td></tr><tr><td><code>DESKEW_MAX_ANGLE</code></td><td><code>30.0</code>&deg;</td></tr><tr><td><code>PREPROCESS_TRY_ADAPTIVE_THRESHOLD</code></td><td><code>False</code>, experimental adaptive-thresholding pass (currently unused in the default pipeline)</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Multi-column reading order</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Setting</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td><code>MULTI_COLUMN_DETECTION</code></td><td><code>True</code>, master switch</td></tr><tr><td><code>COLUMN_MIN_GUTTER_FRACTION</code></td><td><code>0.03</code></td></tr><tr><td><code>COLUMN_FULL_WIDTH_LINE_FRACTION</code></td><td><code>0.62</code></td></tr><tr><td><code>COLUMN_MIN_LINES_FOR_DETECTION</code></td><td><code>6</code></td></tr><tr><td><code>COLUMN_GUTTER_VOTE_FRACTION</code></td><td><code>0.6</code></td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout">
+  <span class="callout-title">Tuned for prose, not tables</span>
+  A table's narrow per-row gutters will not trigger multi-column detection, see <a href="roadmap.html">Roadmap &amp; Limitations</a>.
+</div>
+
+<h3>PDF output</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Setting</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td><code>PDF_JPEG_QUALITY</code></td><td><code>82</code></td></tr><tr><td><code>PDF_ADAPTIVE_COMPRESSION</code></td><td><code>True</code></td></tr><tr><td><code>PDF_GRAYSCALE_THRESHOLD</code></td><td><code>0.02</code></td></tr><tr><td><code>FONT_PATH</code></td><td><code>None</code>, auto-selects a CJK CID font, bundled DejaVu Sans, or Helvetica, based on <code>lang</code></td></tr><tr><td><code>PDF_METADATA</code></td><td>title/author/subject/creator defaults</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Logging</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Setting</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td><code>LOG_LEVEL</code></td><td>env <code>SCANLAYER_LOG_LEVEL</code>, default <code>"INFO"</code></td></tr><tr><td><code>LOG_TIMING</code></td><td><code>True</code></td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout tip">
+  <span class="callout-title">Read the comments in config.py before changing defaults</span>
+  Several values, deskew and blank-page thresholds especially, were tuned against real scanned and photographed pages, not chosen arbitrarily.
+</div>
+
+<h2 id="get-settings">get_settings()</h2>
+<div class="code-block">
+  <div class="code-head"><span class="lang-tag">python</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-python">scanlayer.get_settings()  # -&gt; dict of every configure()-able key, current value</code></pre>
+</div>
+
+    <div class="page-footer-nav"><a href="features.html"><span class="dir">&larr; Previous</span>Feature Catalog</a><a href="output-formats.html" class="next"><span class="dir">Next &rarr;</span>Output Formats</a></div>
+  </div>
+  <aside class="toc" aria-label="On this page">
+  <div class="toc-label">On this page</div>
+  <a href="#configure">scanlayer.configure()</a><a href="#config-file">Config files</a><a href="#precedence">Precedence</a><a href="#tunables">Key tunables by stage</a><a href="#get-settings">get_settings()</a>
+</aside>
+</div>
+  </main>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div>
+      <h5>scanlayer</h5>
+      <p style="color:#B7BDB6;font-size:.86rem;max-width:32ch;">
+        Scanned images and photographed documents in, searchable PDFs
+        (or raw OCR text/JSON/TSV/hOCR) out. CLI and Python library,
+        one codebase.
+      </p>
+    </div>
+    <div>
+      <h5>Docs</h5>
+      <a href="installation.html">Installation</a>
+      <a href="examples.html">Examples</a>
+      <a href="library-api.html">Library API</a>
+      <a href="cli-reference.html">CLI Reference</a>
+    </div>
+    <div>
+      <h5>Guides</h5>
+      <a href="configuration.html">Configuration</a>
+      <a href="output-formats.html">Output Formats</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="roadmap.html">Roadmap</a>
+    </div>
+    <div>
+      <h5>Project</h5>
+      <a href="contributing.html">Contributing</a>
+      <a href="https://github.com/Hyacinthe-primus/scanlayer/blob/main/LICENSE">MIT License</a>
+      <a href="https://github.com/Hyacinthe-primus/scanlayer">Source on GitHub</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>scanlayer is not affiliated with the Tesseract OCR project.</span>
+    <span>Docs built from the library source &amp; wiki.</span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>
