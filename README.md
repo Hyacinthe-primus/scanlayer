@@ -1,7 +1,7 @@
 <div align="center">
 <img src="scanlayer.png" alt="scanlayer" width="110"/>
 <h1>scanlayer</h1>
-<p><em>Scanned image or photographed document &rarr; searchable PDF, or raw OCR text/JSON/TSV/hOCR.</em></p>
+<p><em> Turn scanned image or photographed document into searchable PDF, or raw OCR text/JSON/TSV/hOCR.</em></p>
 </div>
 
 **Turn a scanned image or photographed document into a searchable PDF**, or
