@@ -188,6 +188,18 @@ environment and what to include in a pull request. There is a `tests/`
 directory (now including `utils/validators.py` and the `--dry-run` flag, with
 cross-platform coverage for Tesseract discovery on Windows/macOS/Linux) and it runs with `pytest` automatically in CI on every push and pull request; see [Roadmap & Limitations](https://Hyacinthe-primus.github.io/scanlayer/roadmap.html) and the [Adding tests](CONTRIBUTING.md#adding-tests) section of the contributing guide for where coverage is thinnest.
 
+## Support the project
+
+scanlayer is free and MIT-licensed, maintained in spare time. If it saves you
+time, there is no fee — but a little support goes a long way:
+
+- **Star the repository** — the simplest signal that the project is worth
+  maintaining.
+- **Report bugs or request features** by opening a
+  [GitHub Issue](https://github.com/Hyacinthe-primus/scanlayer/issues).
+- **Contribute** a fix, test, or example — see
+  [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 
 [MIT](LICENSE.md).
