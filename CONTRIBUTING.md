@@ -6,12 +6,11 @@ environment, and open a PR.
 
 ## Before you start
 
-There is a `tests/` directory covering most of the library (run it with
-`pytest`), but no CI workflow yet, see
-[Roadmap & Limitations](https://Hyacinthe-primus.github.io/scanlayer/roadmap.html). Until CI exists, also verify
-your change manually against a real scanned image and include what you
-tested in your PR description. If your contribution adds coverage for one
-of the gaps listed in [Adding tests](#adding-tests) below, even better.
+There is a `tests/` directory covering most of the library, and a CI
+workflow runs it (plus `ruff`) on every push and pull request. Still,
+verify your change manually against a real scanned image and include what
+you tested in your PR description. If your contribution adds coverage for
+one of the gaps listed in [Adding tests](#adding-tests) below, even better.
 
 ## Development setup
 
@@ -92,11 +91,13 @@ scanlayer/
 
 ## Adding tests
 
-A `tests/` directory already exists (installed via `requirements.txt`, which
-includes `pytest`), covering `config.py`, `ocr/export.py`, `layout/columns.py`,
-`pdf/fonts.py`, `pdf/builder.py`, and an end-to-end `convert()` test that
-skips automatically without a real Tesseract install. Coverage gaps worth
-closing next, roughly in priority order:
+A `tests/` directory already exists — install it together with `pytest` and
+`pytest-cov` via `pip install -e ".[test]"` (the `[test]` extra bundles both).
+It covers `config.py`, `ocr/export.py`, `layout/columns.py`, `pdf/fonts.py`,
+`pdf/builder.py`, and an end-to-end `convert()` test that skips automatically
+without a real Tesseract install. Coverage is uploaded to Codecov by CI; to
+see it locally, run `pytest --cov=scanlayer --cov-report=html`. Coverage gaps
+worth closing next, roughly in priority order:
 
 1. `utils/validators.py`: pure functions, no Tesseract required, easy
    to test with tmp paths and mocked environments, and currently only
@@ -125,8 +126,8 @@ closing next, roughly in priority order:
 
 - One logical change per PR.
 - Describe what you tested it against (sample image type, OS, Tesseract
-  version) in the PR description, since there's still no CI to fall back
-  on.
+  version) in the PR description; CI runs the suite on push, but a manual
+  check of your actual scenario is still welcome.
 - Reference the issue you opened in step 1, if applicable.
 
 By contributing, you agree your contribution is licensed under this

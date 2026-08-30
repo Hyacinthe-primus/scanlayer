@@ -20,7 +20,7 @@ command-line tool or as a Python library; both are the same engine underneath.
 
 ## Documentation
 
-[Full documentation](https://Hyacinthe-primus.github.io/scanlayer/) — installation, CLI & API reference, configuration, output formats, examples, and troubleshooting.
+[Full documentation](https://Hyacinthe-primus.github.io/scanlayer/) – installation, CLI & API reference, configuration, output formats, examples, and troubleshooting.
 
 ## What it does
 

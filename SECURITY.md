@@ -52,8 +52,8 @@ Please **do not** open a public issue for security vulnerabilities.
 
 You will receive a response within a reasonable time. Please give the maintainer
 time to confirm and prepare a fix before making the details public. This project
-has no CI and no dedicated security team, so responsible disclosure is
-appreciated.
+has automated CI that runs the test suite and linters on every change, but no
+dedicated security team, so responsible disclosure is appreciated.
 
 ## Mitigations in the codebase
 
