@@ -202,4 +202,4 @@ time, there is no fee – but a little support goes a long way:
 
 ## License
 
-[MIT](LICENSE.md).
+This project is licensed under the [MIT License](LICENSE.md).
