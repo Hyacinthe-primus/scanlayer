@@ -68,10 +68,10 @@ whitelist/blacklist (e.g. custom Tesseract config variables) short of forking th
 launch in <code>ocr/engine.py</code>.</li>
 </ul>
 
-<h2 id="no-tests">Tests exist; PR-testing CI does not (yet)</h2>
-<div class="callout warn">
-  <span class="callout-title">Tests exist, and publishing is automated; PR-testing CI is not</span>
-  A <code>tests/</code> directory now covers <code>config.py</code> (including platform-specific Tesseract discovery), <code>utils/validators.py</code>, <code>layout/columns.py</code>, <code>ocr/export.py</code>, <code>pdf/fonts.py</code>, <code>pdf/builder.py</code>, the <code>--dry-run</code> flag, and an end-to-end integration test in <code>main.py</code> (the last one needs a real Tesseract install and skips automatically when one isn't found). Run it with <code>pytest</code> after <code>pip install -r requirements.txt</code> (which includes <code>pytest</code>). A GitHub Actions release workflow (<code>.github/workflows/pypi-publish.yml</code>) builds the sdist and wheel and uploads to PyPI via trusted publishing whenever a <code>v*</code> tag is pushed. There is still no CI workflow that runs the test suite automatically on a PR, so a contribution can pass locally and still not have been checked before merge; see <a href="contributing.html">Contributing</a> for where coverage is thinnest.
+<h2 id="no-tests">Tests exist, and CI runs them on every PR</h2>
+<div class="callout ok">
+  <span class="callout-title">Tests, linting, and publishing are all automated</span>
+  A <code>tests/</code> directory covers <code>config.py</code> (including platform-specific Tesseract discovery), <code>utils/validators.py</code>, <code>layout/columns.py</code>, <code>ocr/export.py</code>, <code>pdf/fonts.py</code>, <code>pdf/builder.py</code>, the <code>--dry-run</code> flag, and an end-to-end integration test in <code>main.py</code> (the last one needs a real Tesseract install and skips automatically when one isn't found). Run it with <code>pytest</code> after <code>pip install -r requirements.txt</code> (which includes <code>pytest</code>). GitHub Actions runs two workflows: <code>.github/workflows/ci.yml</code> runs the test suite (with Tesseract incl. French and English traineddata plus poppler installed) and <code>ruff</code> on every push to <code>main</code> and on every PR, and <code>.github/workflows/pypi-publish.yml</code> builds the sdist and wheel and uploads to PyPI via trusted publishing whenever a <code>v*</code> tag is pushed. Before relying on new Tesseract versions or platforms, check <a href="contributing.html">Contributing</a> for where coverage is thinnest.
 </div>
 
 <h2 id="scope">Deliberate scope boundaries</h2>
@@ -106,7 +106,7 @@ as they complete.</li>
   </div>
   <aside class="toc" aria-label="On this page">
   <div class="toc-label">On this page</div>
-  <a href="#packaging">Packaging</a><a href="#cli-gaps">CLI gaps</a><a href="#no-tests">Tests exist; PR-testing CI does not</a><a href="#scope">Deliberate scope boundaries</a><a href="#other">Other things to know before relying on this</a>
+  <a href="#packaging">Packaging</a><a href="#cli-gaps">CLI gaps</a><a href="#no-tests">Tests and CI</a><a href="#scope">Deliberate scope boundaries</a><a href="#other">Other things to know before relying on this</a>
 </aside>
 </div>
   </main>
