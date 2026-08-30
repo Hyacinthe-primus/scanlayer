@@ -48,9 +48,9 @@
 <a href="https://github.com/Hyacinthe-primus/scanlayer/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>
 in the repository root; this page mirrors the essentials.</p>
 
-<div class="callout warn">
-  <span class="callout-title">Tests exist, but there is no CI yet</span>
-  Run <code>pytest</code> after installing the <code>test</code> extra; a few of the newer or trickier modules still have no coverage, see <a href="#tests">Adding tests</a> below.
+<div class="callout ok">
+  <span class="callout-title">Tests and linting run in CI on every push and pull request</span>
+  Run <code>pytest</code> after installing the <code>test</code> extra; CI also uploads coverage to Codecov. A few of the newer or trickier modules still have no coverage, see <a href="#tests">Adding tests</a> below.
 </div>
 
 <h2 id="setup">Development setup</h2>
@@ -128,7 +128,7 @@ sample, asserting on word-count/confidence ranges rather than exact OCR text.</l
 <h2 id="submitting">Submitting</h2>
 <ul>
 <li>One logical change per PR.</li>
-<li>Describe what you tested it against (image type, OS, Tesseract version): there is still no CI to fall back on.</li>
+<li>Describe what you tested it against (image type, OS, Tesseract version); CI runs the suite on push, but a manual check of your actual scenario is still welcome.</li>
 <li>Reference the issue you opened, if applicable.</li>
 </ul>
 <p>By contributing, you agree your contribution is licensed under this project's
