@@ -191,13 +191,13 @@ cross-platform coverage for Tesseract discovery on Windows/macOS/Linux) and it r
 ## Support the project
 
 scanlayer is free and MIT-licensed, maintained in spare time. If it saves you
-time, there is no fee — but a little support goes a long way:
+time, there is no fee – but a little support goes a long way:
 
-- **Star the repository** — the simplest signal that the project is worth
+- **Star the repository** – the simplest signal that the project is worth
   maintaining.
 - **Report bugs or request features** by opening a
   [GitHub Issue](https://github.com/Hyacinthe-primus/scanlayer/issues).
-- **Contribute** a fix, test, or example — see
+- **Contribute** a fix, test, or example – see
   [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
