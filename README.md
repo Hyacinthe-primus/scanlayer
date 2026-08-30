@@ -20,20 +20,7 @@ command-line tool or as a Python library; both are the same engine underneath.
 
 ## Documentation
 
-| | |
-|---|---|
-| **[Installation](https://Hyacinthe-primus.github.io/scanlayer/installation.html)** | Tesseract, poppler, and the two ways to install scanlayer itself |
-| **[Examples](https://Hyacinthe-primus.github.io/scanlayer/examples.html)** | Every feature, CLI and library side by side |
-| **[CLI Reference](https://Hyacinthe-primus.github.io/scanlayer/cli-reference.html)** | Every flag and exit code |
-| **[Library API](https://Hyacinthe-primus.github.io/scanlayer/library-api.html)** | `convert()`, `convert_batch()`, `convert_merge()`, exceptions, and the full low-level pipeline API |
-| **[Feature Catalog](https://Hyacinthe-primus.github.io/scanlayer/features.html)** | Everything scanlayer does, by pipeline stage |
-| **[Configuration](https://Hyacinthe-primus.github.io/scanlayer/configuration.html)** | `configure()`, config files, precedence, every tunable |
-| **[Output Formats](https://Hyacinthe-primus.github.io/scanlayer/output-formats.html)** | The `pdf`/`txt`/`json`/`tsv`/`hocr` schemas |
-| **[Multi-Page & Merge](https://Hyacinthe-primus.github.io/scanlayer/multi-page-merge.html)** | Batching, merging, native PDF input |
-| **[Debug Visualization](https://Hyacinthe-primus.github.io/scanlayer/debug-visualization.html)** | Reading the `--debug-image` confidence overlay |
-| **[Bundling Tesseract](https://Hyacinthe-primus.github.io/scanlayer/bundling-tesseract.html)** | Shipping your own Tesseract binary |
-| **[Troubleshooting](https://Hyacinthe-primus.github.io/scanlayer/troubleshooting.html)** | Common errors and fixes |
-| **[Roadmap & Limitations](https://Hyacinthe-primus.github.io/scanlayer/roadmap.html)** | What's missing and what's deliberately out of scope |
+[Full documentation](https://Hyacinthe-primus.github.io/scanlayer/) — installation, CLI & API reference, configuration, output formats, examples, and troubleshooting.
 
 ## What it does
 
