@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scanlayer"
-version = "1.0.2"
+version = "1.0.3"
 description = "Image (scan/photo) to searchable PDF, or raw OCR export, via Tesseract."
 readme = "README.md"
 requires-python = ">=3.9"

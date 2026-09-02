@@ -12,6 +12,7 @@ Set config.FONT_PATH to force a specific TTF and skip auto-selection.
 from __future__ import annotations
 
 import os
+import sys
 
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
@@ -25,7 +26,9 @@ log = get_logger(__name__)
 FALLBACK_FONT = "Helvetica"
 
 _UNICODE_TTF_NAME = "ScanlayerUnicode"
-_UNICODE_TTF_PATH = os.path.join(os.path.dirname(__file__), "..", "fonts", "DejaVuSans.ttf")
+_scanlayer_root = os.path.dirname(os.path.dirname(__file__))
+_bundle_root = getattr(sys, "_MEIPASS", os.path.dirname(_scanlayer_root))
+_UNICODE_TTF_PATH = os.path.join(_bundle_root, "scanlayer", "fonts", "DejaVuSans.ttf")
 
 _CUSTOM_TTF_NAME = "ScanlayerCustom"
 _custom_registered_path: str | None = None
