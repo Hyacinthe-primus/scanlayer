@@ -27,7 +27,7 @@
         theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
       );
     }
-    applyState(root.getAttribute("data-theme") || "light");
+    applyState(root.getAttribute("data-theme") || "dark");
 
     btn.addEventListener("click", function () {
       var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";

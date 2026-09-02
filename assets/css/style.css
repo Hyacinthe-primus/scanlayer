@@ -2,33 +2,33 @@
    --debug-image confidence overlay (green / amber / red). */
 
 :root {
-  /* Paper + ink */
-  --paper:        #F1F2EE;
-  --paper-raised: #FBFBF9;
-  --ink:          #14171A;
-  --ink-soft:     #454B4F;
-  --ink-faint:    #8A9096;
-  --hairline:     #D8DAD3;
-  --hairline-strong: #B9BCB3;
+  /* Dark-first surfaces (WinUtil-style default) */
+  --paper:        #14171C;
+  --paper-raised: #1B1F25;
+  --ink:          #ECEDEE;
+  --ink-soft:     #A9AFB8;
+  --ink-faint:    #6E747D;
+  --hairline:     #262B32;
+  --hairline-strong: #363C45;
 
-  /* Scanner-glass accent (primary brand) */
-  --glass:        #0E7C86;
-  --glass-deep:   #0A5C64;
-  --glass-tint:   #E3F1F1;
+  /* Primary accent — flat WinUtil blue */
+  --glass:        #4C8DFF;
+  --glass-deep:   #7FADFF;
+  --glass-tint:   #16233D;
 
   /* Confidence-tier semantic colors, taken verbatim from
      utils/debug_image.py's _COLOR_HIGH / _COLOR_MID / _COLOR_LOW */
-  --conf-high:    #1F8B4C;
-  --conf-high-bg: #E7F5EC;
-  --conf-mid:     #B9750A;
-  --conf-mid-bg:  #FBF0DD;
-  --conf-low:     #C23B36;
-  --conf-low-bg:  #FBE9E8;
+  --conf-high:    #3FBE75;
+  --conf-high-bg: #16311F;
+  --conf-mid:     #E0A947;
+  --conf-mid-bg:  #35280E;
+  --conf-low:     #F0847E;
+  --conf-low-bg:  #3A1D1B;
 
   /* Dark surfaces (code, footer) */
-  --carbon:       #14181B;
-  --carbon-raised:#1C2226;
-  --carbon-line:  #2B3236;
+  --carbon:       #0E1013;
+  --carbon-raised:#171A1E;
+  --carbon-line:  #262A2F;
   --paper-on-carbon: #E7E9E5;
 
   --radius-sm: 3px;
@@ -42,54 +42,59 @@
   --sidebar-w: 272px;
   --topbar-h: 60px;
 
-  --shadow-sm: 0 1px 2px rgba(20, 23, 26, 0.06), 0 1px 1px rgba(20,23,26,.04);
-  --shadow-md: 0 6px 20px rgba(20, 23, 26, 0.10);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 1px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.45);
+
+  --topbar-bg: rgba(14, 16, 19, 0.88);
+  --solid-chip-bg: var(--glass);
+  --solid-chip-text: #0B1220;
+}
+
+:root[data-theme="light"] {
+  --paper:        #F1F2EE;
+  --paper-raised: #FBFBF9;
+  --ink:          #14171A;
+  --ink-soft:     #454B4F;
+  --ink-faint:    #8A9096;
+  --hairline:     #D8DAD3;
+  --hairline-strong: #B9BCB3;
+
+  --glass:        #2F6FE4;
+  --glass-deep:   #2258BE;
+  --glass-tint:   #E7EFFC;
+
+  --conf-high:    #1F8B4C;
+  --conf-high-bg: #E7F5EC;
+  --conf-mid:     #B9750A;
+  --conf-mid-bg:  #FBF0DD;
+  --conf-low:     #C23B36;
+  --conf-low-bg:  #FBE9E8;
+
+  --paper-on-carbon: #E7E9E5;
 
   --topbar-bg: rgba(241, 242, 238, 0.88);
   --solid-chip-bg: var(--ink);
   --solid-chip-text: #fff;
+
+  --shadow-sm: 0 1px 2px rgba(20, 23, 26, 0.06), 0 1px 1px rgba(20,23,26,.04);
+  --shadow-md: 0 6px 20px rgba(20, 23, 26, 0.10);
 }
-
-:root[data-theme="dark"] {
-  --paper:        #15181B;
-  --paper-raised: #1D2124;
-  --ink:          #ECEDEA;
-  --ink-soft:     #AFB5B9;
-  --ink-faint:    #767C80;
-  --hairline:     #2A2E31;
-  --hairline-strong: #3A3F42;
-
-  --glass:        #35BCC7;
-  --glass-deep:   #6FD8E0;
-  --glass-tint:   #163236;
-
-  --conf-high:    #3FBE75;
-  --conf-high-bg: #16311F;
-  --conf-mid:     #E0A947;
-  --conf-mid-bg:  #35280E;
-  --conf-low:     #F0847E;
-  --conf-low-bg:  #3A1D1B;
-
-  --paper-on-carbon: #E7E9E5;
-
-  --topbar-bg: rgba(21, 24, 27, 0.88);
-  --solid-chip-bg: var(--glass);
-  --solid-chip-text: #0B2224;
-
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 1px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.45);
-}
-:root[data-theme="dark"] .btn-primary:hover { background: var(--glass-deep); }
-:root[data-theme="dark"] .btn-ghost:hover { background: var(--paper-raised); }
-:root[data-theme="dark"] .topbar .version-tag { border-color: var(--hairline-strong); }
-:root[data-theme="dark"] .pill.neutral { background: var(--paper-raised); color: var(--ink-soft); }
-:root[data-theme="dark"] .scan-page { background: #1B2023; color: #A7B0AA; }
-:root[data-theme="dark"] .scan-word { background: rgba(255, 255, 255, 0.06); }
-:root[data-theme="dark"] .scan-word.high { color: #9CE3B7; }
-:root[data-theme="dark"] .scan-word.mid  { color: #F0CE93; }
-:root[data-theme="dark"] .scan-word.low  { color: #F5B3AE; }
-:root[data-theme="dark"] .scan-footer-row { color: #838A84; border-top-color: #33372F; }
-:root[data-theme="dark"] .code-block .code-head .filename { color: #7C9294; }
+:root[data-theme="light"] .btn-primary:hover { background: var(--glass-deep); }
+:root[data-theme="light"] .btn-ghost:hover { background: var(--paper-raised); }
+:root[data-theme="light"] .topbar .version-tag { border-color: #c9d9f7; }
+:root[data-theme="light"] .pill.neutral { background: #ECEEE8; color: var(--ink-soft); }
+:root[data-theme="light"] .scan-footer-row { color: #767b70; border-top-color: #cfceC5; }
+:root:not([data-theme="light"]) .btn-primary:hover { background: var(--glass-deep); color: var(--solid-chip-text); }
+:root:not([data-theme="light"]) .btn-ghost:hover { background: var(--paper-raised); }
+:root:not([data-theme="light"]) .topbar .version-tag { border-color: var(--hairline-strong); }
+:root:not([data-theme="light"]) .pill.neutral { background: var(--paper-raised); color: var(--ink-soft); }
+:root:not([data-theme="light"]) .scan-page { background: #1B2023; color: #A7B0AA; }
+:root:not([data-theme="light"]) .scan-word { background: rgba(255, 255, 255, 0.06); }
+:root:not([data-theme="light"]) .scan-word.high { color: #9CE3B7; }
+:root:not([data-theme="light"]) .scan-word.mid  { color: #F0CE93; }
+:root:not([data-theme="light"]) .scan-word.low  { color: #F5B3AE; }
+:root:not([data-theme="light"]) .scan-footer-row { color: #838A84; border-top-color: #33372F; }
+:root:not([data-theme="light"]) .code-block .code-head .filename { color: #7C9294; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
@@ -177,7 +182,7 @@ hr { border: none; border-top: 1px solid var(--hairline); margin: 2.2rem 0; }
 .topbar .version-tag {
   font-family: var(--font-mono); font-size: .68rem; color: var(--glass-deep);
   background: var(--glass-tint); border-radius: 999px; padding: .12rem .5rem;
-  border: 1px solid #c7e2e2;
+  border: 1px solid var(--hairline-strong);
 }
 .topbar-spacer { flex: 1; }
 .topbar-links { display: flex; align-items: center; gap: 1.1rem; font-size: .88rem; }
@@ -398,7 +403,7 @@ td code, th code { white-space: nowrap; }
 .scan-word.low  { border-color: var(--conf-low); color: #6b1c19; }
 .scan-beam {
   position: absolute; left: 0; right: 0; height: 42%; top: -50%;
-  background: linear-gradient(180deg, rgba(23,184,166,0) 0%, rgba(23,184,166,.20) 45%, rgba(23,184,166,.38) 50%, rgba(23,184,166,.20) 55%, rgba(23,184,166,0) 100%);
+  background: linear-gradient(180deg, rgba(76,141,255,0) 0%, rgba(76,141,255,.22) 45%, rgba(76,141,255,.4) 50%, rgba(76,141,255,.22) 55%, rgba(76,141,255,0) 100%);
   animation: sweep 3.2s ease-in-out infinite;
   pointer-events: none;
 }
@@ -432,6 +437,36 @@ td code, th code { white-space: nowrap; }
 
 /* Homepage feature cards use icon glyphs */
 .feat-icon { width: 34px; height: 34px; border-radius: 8px; background: var(--glass-tint); color: var(--glass-deep); display: flex; align-items: center; justify-content: center; margin-bottom: .7rem; }
+
+/* WinUtil-style inline checkmark badge row (under hero CTAs) */
+.badge-row { display: flex; flex-wrap: wrap; gap: .5rem 1.4rem; margin-bottom: 1.8rem; }
+.badge-row .badge-item { display: inline-flex; align-items: center; gap: .4rem; font-size: .82rem; color: var(--ink-soft); }
+.badge-row .badge-item svg { color: var(--glass); flex: none; }
+
+/* WinUtil-style shield pills (release / downloads / etc) */
+.shield-row { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.6rem; }
+.shield-pill {
+  display: inline-flex; align-items: center; gap: .4rem; font-family: var(--font-mono);
+  font-size: .72rem; font-weight: 600; padding: .3rem .65rem; border-radius: var(--radius-sm);
+  background: var(--paper-raised); border: 1px solid var(--hairline-strong); color: var(--ink-soft);
+}
+.shield-pill strong { color: var(--glass-deep); font-weight: 700; }
+
+/* WinUtil-style numbered onboarding steps */
+.step-list { counter-reset: step; max-width: 720px; margin: 1.6rem auto 0; }
+.step-item { display: flex; gap: 1.2rem; padding-bottom: 1.8rem; position: relative; }
+.step-item:not(:last-child)::before {
+  content: ""; position: absolute; left: 17px; top: 40px; bottom: 0; width: 1px; background: var(--hairline);
+}
+.step-num-circle {
+  flex: none; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--glass-tint); color: var(--glass-deep); border: 1px solid var(--hairline-strong);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-weight: 700; font-size: .92rem; z-index: 1;
+}
+.step-item h3 { margin: .1rem 0 .3rem; font-size: 1.05rem; }
+.step-item p { margin-bottom: 0; font-size: .92rem; }
+.step-item .code-block { margin: .8rem 0 0; }
 
 kbd { font-family: var(--font-mono); background: var(--paper-raised); border: 1px solid var(--hairline-strong); border-bottom-width: 2px; border-radius: 4px; padding: .05em .4em; font-size: .82em; }
 
