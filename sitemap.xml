@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/installation.html</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/examples.html</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/cli-reference.html</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/library-api.html</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/features.html</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/configuration.html</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/output-formats.html</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/multi-page-merge.html</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/debug-visualization.html</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/bundling-tesseract.html</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/troubleshooting.html</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/roadmap.html</loc></url>
+  <url><loc>https://hyacinthe-primus.github.io/scanlayer/contributing.html</loc></url>
+</urlset>
