@@ -1,5 +1,5 @@
 <div align="center">
-<img src="scanlayer.png" alt="scanlayer" width="110"/>
+<img src="https://raw.githubusercontent.com/Hyacinthe-primus/scanlayer/main/scanlayer.png" alt="scanlayer" width="110"/>
 <h1>scanlayer</h1>
 <p><em> Turn scanned image or photographed document into searchable PDF, or raw OCR text/JSON/TSV/hOCR.</em></p>
 </div>
