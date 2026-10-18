@@ -77,7 +77,7 @@ scanlayer.configure(lang=&quot;eng&quot;, min_word_confidence=40)</code></pre>
 silently doing nothing.</p>
 <div class="callout">
   <span class="callout-title">Accepted keys</span>
-  tesseract_cmd, tessdata_dir, lang, default_dpi, min_word_confidence, psm_candidates, psm_early_exit_confidence, psm_parallel, psm_max_workers, ocr_timeout_seconds, char_whitelist, char_blacklist, jpeg_quality, font_path, log_level, log_timing, multi_column_detection, column_min_gutter_fraction, column_gutter_vote_fraction, column_full_width_line_fraction, column_min_lines_for_detection
+  tesseract_cmd, tessdata_dir, lang, default_dpi, min_word_confidence, psm_candidates, psm_early_exit_confidence, psm_parallel, psm_max_workers, merge_workers, ocr_timeout_seconds, char_whitelist, char_blacklist, jpeg_quality, font_path, log_level, log_timing, multi_column_detection, column_min_gutter_fraction, column_gutter_vote_fraction, column_full_width_line_fraction, column_min_lines_for_detection
 </div>
 
 <h2 id="config-file">Config files</h2>
@@ -155,7 +155,7 @@ log_level: INFO</code></pre>
 <table>
 <thead><tr><th>Setting</th><th>Default</th></tr></thead>
 <tbody>
-<tr><td><code>DEFAULT_OCR_LANG</code></td><td><code>"fra+eng"</code></td></tr><tr><td><code>MIN_WORD_CONFIDENCE</code></td><td><code>35</code></td></tr><tr><td><code>TESSERACT_PSM_CANDIDATES</code></td><td><code>[3, 4, 6, 11]</code>, see <a href="cli-reference.html">CLI Reference</a></td></tr><tr><td><code>PSM_EARLY_EXIT_CONFIDENCE</code></td><td><code>80.0</code></td></tr><tr><td><code>PSM_PARALLEL</code></td><td><code>True</code></td></tr><tr><td><code>PSM_MAX_WORKERS</code></td><td>unset (thread-pool default)</td></tr><tr><td><code>OCR_TIMEOUT_SECONDS</code></td><td><code>45</code></td></tr><tr><td><code>TESSERACT_OEM</code></td><td><code>1</code> (LSTM only)</td></tr><tr><td><code>TESSERACT_CHAR_WHITELIST</code> / <code>_BLACKLIST</code></td><td><code>None</code></td></tr><tr><td><code>DROP_NON_PRINTABLE_WORDS</code></td><td><code>True</code>, drops words containing non-printable/control characters</td></tr>
+<tr><td><code>DEFAULT_OCR_LANG</code></td><td><code>"fra+eng"</code></td></tr><tr><td><code>MIN_WORD_CONFIDENCE</code></td><td><code>35</code></td></tr><tr><td><code>TESSERACT_PSM_CANDIDATES</code></td><td><code>[3, 4, 6, 11]</code>, see <a href="cli-reference.html">CLI Reference</a></td></tr><tr><td><code>PSM_EARLY_EXIT_CONFIDENCE</code></td><td><code>80.0</code></td></tr><tr><td><code>PSM_PARALLEL</code></td><td><code>True</code></td></tr><tr><td><code>PSM_MAX_WORKERS</code></td><td>unset (thread-pool default)</td></tr><tr><td><code>MERGE_WORKERS</code></td><td><code>3</code>: pages processed at once by a merge (hard maximum 4)</td></tr><tr><td><code>OCR_TIMEOUT_SECONDS</code></td><td><code>45</code></td></tr><tr><td><code>TESSERACT_OEM</code></td><td><code>1</code> (LSTM only)</td></tr><tr><td><code>TESSERACT_CHAR_WHITELIST</code> / <code>_BLACKLIST</code></td><td><code>None</code></td></tr><tr><td><code>DROP_NON_PRINTABLE_WORDS</code></td><td><code>True</code>, drops words containing non-printable/control characters</td></tr>
 </tbody>
 </table>
 </div>

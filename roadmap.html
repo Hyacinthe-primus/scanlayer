@@ -105,8 +105,9 @@ a surprising result is not mistaken for a defect.</p>
 <h2 id="other">Other things to know before relying on this</h2>
 <ul>
 <li>No async API: <code>convert()</code>/<code>convert_batch()</code>/<code>convert_merge()</code>
-are synchronous and blocking. Parallelism only exists internally, across PSM candidates
-within a single file's OCR pass.</li>
+are synchronous and blocking. Parallelism only exists internally: across PSM candidates
+within a single file's OCR pass, and across pages (up to 4 at once) within a
+<code>--merge</code> run. Separate files in a plain batch are still processed one at a time.</li>
 <li>No built-in retry/backoff for a failed Tesseract invocation within a batch; a per-file
 failure is recorded and the batch moves on, but that one file is not automatically retried.</li>
 <li>No streaming API for very large batches; <code>convert_batch()</code> returns one

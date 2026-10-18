@@ -122,6 +122,33 @@ partial failure; in the library, check <code>BatchResult.failures</code>. See
   <code>--merge</code> only supports <code>--format pdf</code> / <code>output_format="pdf"</code>, since there is no single sensible multi-page schema for txt/json/tsv/hocr. <code>-o</code> / <code>output_path</code> must be a file path, not a folder, when merging.
 </div>
 
+<h3 id="merge-workers">Processing pages in parallel</h3>
+<p>A merge processes up to 3 pages at the same time by default, so one page's OCR can overlap
+another page's preprocessing. Page order in the output is always the input order, and the OCR
+result is the same whatever the setting: it only changes speed. The maximum is 4, and the value
+is also capped by your CPU count and the number of pages. <code>1</code> processes one page at a
+time.</p>
+<div class="code-block">
+  <div class="code-head"><span class="lang-tag">bash</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-bash">scanlayer *.jpg -o combined.pdf --merge --workers 4</code></pre>
+</div>
+<div class="code-block">
+  <div class="code-head"><span class="lang-tag">python</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-python">scanlayer.convert_merge(pages, &quot;combined.pdf&quot;, workers=4)
+
+# or as the default for every merge in this process:
+scanlayer.configure(merge_workers=4)</code></pre>
+</div>
+<p>Expect a modest speedup: in our tests, roughly 15% to 50% faster than one page at a time. Most
+of the time per page goes to image preprocessing, which does not speed up much when pages run
+side by side, so more pages in flight help less than you might hope.</p>
+<p>If a page fails (for example a blank page without <code>--force</code>), the first bad page in
+input order is the one reported, and pages that have not started yet are skipped.</p>
+
 <h2 id="pdf-input">Native PDF input</h2>
 <p>A <code>.pdf</code> file given as input is automatically rasterized page by page
 (via <code>pdf2image</code>/poppler) before OCR.</p>

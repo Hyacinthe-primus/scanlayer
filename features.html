@@ -70,6 +70,7 @@ library source directly: if it is not listed here, it is not implemented (see
 <li>Accept native <code>.pdf</code> files as input, automatically rasterized page by page before OCR (requires poppler). See <a href="multi-page-merge.html">Multi-Page and Merge</a>.</li>
 <li>Batch-convert many files in one call, mixed extensions and glob patterns welcome, one output per input.</li>
 <li>Merge several images, or every page of a source PDF, into one multi-page searchable PDF (<code>--merge</code> / <code>convert_merge()</code>).</li>
+<li>Process up to 4 pages of a merge at the same time (3 by default; <code>--workers</code> / <code>workers=</code> / <code>configure(merge_workers=...)</code>), with page order and OCR output unchanged. See <a href="multi-page-merge.html#merge-workers">Multi-Page and Merge</a>.</li>
 <li>Validate an entire batch before committing to OCR: every input exists and is readable, Tesseract is reachable, output paths are writable (<code>--dry-run</code>, CLI only; library callers get the same checks via <code>validate_all()</code>).</li>
 <li>Works both as a CLI (<code>scanlayer</code>) and as a Python library (<code>import scanlayer</code>), identical functionality either way.</li>
 <li>Runs from an installed package (<code>pip install scanlayer</code>) or directly from a source checkout (<code>python -m scanlayer</code>), no install required.</li></ul>

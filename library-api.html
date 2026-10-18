@@ -206,6 +206,7 @@ except scanlayer.utils.errors.BlankPageDetectedError:
     orientation: &quot;str | float | None&quot; = None,
     output_format: str = &quot;pdf&quot;,
     debug_image: bool = False,
+    workers: Optional[int] = None,
     verbose: bool = False,
     quiet: bool = False,
 ) -&gt; BatchResult</code></pre>
@@ -223,6 +224,8 @@ rule, no shared folder needed. With <code>merge=True</code>, <code>output</code>
 instead a single file path for the combined PDF, and <code>output_format</code> must
 stay <code>"pdf"</code>; <code>output</code> is required in that case, since there is
 no single input to derive a shared name from.</li>
+<li><code>workers</code> only matters with <code>merge=True</code>: how many pages are processed at
+the same time, exactly as in <a href="#convert-merge"><code>convert_merge()</code></a>. It is ignored otherwise.</li>
 <li>Every other keyword argument is the same as <code>convert()</code>, applied to every file.</li>
 <li><code>verbose</code>/<code>quiet</code> set the log level for the whole call, equivalent to
 <code>configure(log_level="DEBUG"/"ERROR")</code>. Mutually exclusive: passing both raises
@@ -278,6 +281,7 @@ class BatchResult:
     pdf_metadata: Optional[dict] = None,
     force: bool = False,
     orientation: &quot;str | float | None&quot; = None,
+    workers: Optional[int] = None,
 ) -&gt; ConversionResult</code></pre>
 </div>
 <p>Combines several source images into <strong>one</strong> multi-page searchable PDF, in
@@ -295,6 +299,14 @@ print(result.words_count, &quot;words across&quot;, result.column_count, &quot;m
 checked per page. In the returned <code>ConversionResult</code>, <code>best_psm</code> is always
 <code>None</code> (no single meaningful PSM across a multi-page merge), and
 <code>mean_confidence</code> is word-count-weighted across every page.</p>
+<p><code>workers</code> sets how many pages are processed at the same time, from 1 to 4.
+<code>None</code> (the default) uses <code>configure(merge_workers=...)</code>, which defaults to 3,
+and <code>1</code> processes one page at a time. A value above 4 is reduced to 4 with a warning, the
+value is also capped by your CPU count and the number of pages, and anything below 1 (or not an
+integer) raises <code>ValueError</code>. It only changes speed: pages stay in input order and the
+OCR result is the same. If a page fails, the first bad page in input order is the one reported,
+and pages that have not started yet are skipped. See
+<a href="multi-page-merge.html#merge-workers">Multi-Page and Merge</a> for what speedup to expect.</p>
 
 <h2 id="exceptions">Exceptions</h2>
 <div class="table-wrap">
