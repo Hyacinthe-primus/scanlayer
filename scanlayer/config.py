@@ -89,6 +89,12 @@ PSM_EARLY_EXIT_CONFIDENCE = 80.0
 PSM_PARALLEL = True
 PSM_MAX_WORKERS = None
 
+# Pages processed concurrently by convert_merge()/--merge. 1 = one page at
+# a time. Each page already races several Tesseract processes, so this is
+# kept small; MERGE_WORKERS_LIMIT is a hard ceiling that is not configurable.
+MERGE_WORKERS = 3
+MERGE_WORKERS_LIMIT = 4
+
 OCR_TIMEOUT_SECONDS = 45
 
 # PSM candidates: engine.py runs one pass per PSM, keeps highest mean confidence.
@@ -161,6 +167,7 @@ _CONFIGURABLE_KEYS = {
     "psm_early_exit_confidence": "PSM_EARLY_EXIT_CONFIDENCE",
     "psm_parallel": "PSM_PARALLEL",
     "psm_max_workers": "PSM_MAX_WORKERS",
+    "merge_workers": "MERGE_WORKERS",
     "ocr_timeout_seconds": "OCR_TIMEOUT_SECONDS",
     "char_whitelist": "TESSERACT_CHAR_WHITELIST",
     "char_blacklist": "TESSERACT_CHAR_BLACKLIST",

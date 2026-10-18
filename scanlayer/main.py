@@ -9,7 +9,9 @@ from __future__ import annotations
 import glob
 import os
 import tempfile
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Optional
 
@@ -17,7 +19,7 @@ from PIL import Image
 
 from scanlayer import config
 from scanlayer.layout.columns import reorder_reading_order
-from scanlayer.ocr.engine import extract_words
+from scanlayer.ocr.engine import extract_words, use_configured_tesseract
 from scanlayer.ocr.export import FORMATS, export_words
 from scanlayer.pdf.builder import build_searchable_pdf, build_searchable_pdf_multipage
 from scanlayer.preprocessing.enhance import preprocess
@@ -422,10 +424,12 @@ def _process_page_for_merge(
     char_blacklist: Optional[str],
     orientation: "str | float | None",
     force: bool,
+    ocr_slots: Optional[threading.Semaphore] = None,
 ):
     """Run preprocessing + OCR for one page of a --merge run.
 
     Returns (PageInput, stats_dict). Does not touch the output path.
+    Safe to call from several threads at once.
     """
     from scanlayer.pdf.builder import PageInput
 
@@ -467,6 +471,7 @@ def _process_page_for_merge(
     ocr_result = extract_words(
         result.ocr_image, result.ocr_scale, effective_dpi=result.effective_dpi,
         lang=lang, char_whitelist=char_whitelist, char_blacklist=char_blacklist,
+        ocr_slots=ocr_slots,
     )
     ocr_result.words, column_count = reorder_reading_order(
         ocr_result.words, page_width=result.background.width,
@@ -487,6 +492,86 @@ def _process_page_for_merge(
     return page, stats
 
 
+def _resolve_merge_workers(workers: Optional[int], page_count: int) -> int:
+    """How many pages a merge run processes at once (always >= 1).
+
+    None means config.MERGE_WORKERS. The result never exceeds
+    config.MERGE_WORKERS_LIMIT, the page count, or the CPU count.
+    """
+    requested = config.MERGE_WORKERS if workers is None else workers
+    if isinstance(requested, bool) or not isinstance(requested, int) or requested < 1:
+        raise ValueError(f"workers must be an integer >= 1, got {requested!r}.")
+
+    limit = config.MERGE_WORKERS_LIMIT
+    if requested > limit:
+        log_warning(
+            get_logger("main"),
+            f"workers={requested} is above the maximum of {limit}, using {limit}.",
+        )
+    return max(1, min(requested, limit, page_count, os.cpu_count() or 1))
+
+
+def _process_pages_for_merge(
+    input_paths: list[str],
+    workers: int,
+    lang: Optional[str],
+    dpi: Optional[int],
+    char_whitelist: Optional[str],
+    char_blacklist: Optional[str],
+    orientation: "str | float | None",
+    force: bool,
+) -> list:
+    """Run preprocessing + OCR for every page of a merge run.
+
+    Returns [(PageInput, stats), ...] in input order, whatever order the
+    pages finish in. If a page fails, the failure of the first bad page in
+    input order is raised and pages that have not started yet are dropped.
+    With workers == 1 pages are processed one at a time on the calling
+    thread, exactly as before.
+    """
+    log = get_logger("main")
+    page_args = (lang, dpi, char_whitelist, char_blacklist, orientation, force)
+    use_configured_tesseract()
+
+    def _done(input_path: str, stats: dict) -> None:
+        log.info(
+            f"'{input_path}': {stats['words']} words "
+            f"(mean confidence {stats['mean_conf']:.1f}%"
+            + (f", {stats['columns']} columns" if stats["columns"] > 1 else "")
+            + ")"
+        )
+
+    results: list = []
+    if workers <= 1:
+        for input_path in input_paths:
+            page, stats = _process_page_for_merge(input_path, *page_args)
+            _done(input_path, stats)
+            results.append((page, stats))
+        return results
+
+    # Every page already races several Tesseract processes. This shared
+    # semaphore keeps the total at the CPU count, so concurrent pages cannot
+    # starve each other into the per-call OCR timeout.
+    ocr_slots = threading.BoundedSemaphore(os.cpu_count() or 1)
+    log.info(f"Processing {len(input_paths)} page(s) with {workers} parallel workers.")
+
+    executor = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="scanlayer-page")
+    try:
+        futures = [
+            executor.submit(
+                _process_page_for_merge, input_path, *page_args, ocr_slots=ocr_slots,
+            )
+            for input_path in input_paths
+        ]
+        for input_path, future in zip(input_paths, futures):
+            page, stats = future.result()
+            _done(input_path, stats)
+            results.append((page, stats))
+    finally:
+        executor.shutdown(wait=True, cancel_futures=True)
+    return results
+
+
 def convert_merge(
     input_paths: list[str],
     output_path: str,
@@ -498,15 +583,22 @@ def convert_merge(
     pdf_metadata: Optional[dict] = None,
     force: bool = False,
     orientation: "str | float | None" = None,
+    workers: Optional[int] = None,
 ) -> ConversionResult:
     """Combine several images into one multi-page searchable PDF.
 
     PDF-only. Raises BlankPageDetectedError if any page is blank and
     force=False.
+
+    workers: pages processed concurrently, 1 to config.MERGE_WORKERS_LIMIT
+        (4). None uses config.MERGE_WORKERS (default 3). 1 processes one
+        page at a time. It only changes speed: page order and OCR output are
+        the same for any value.
     """
     if not input_paths:
         raise ValueError("convert_merge() called with no input paths.")
 
+    worker_count = _resolve_merge_workers(workers, len(input_paths))
 
     log = get_logger("main")
     t0 = time.perf_counter()
@@ -518,22 +610,16 @@ def convert_merge(
     conf_weighted_sum = 0.0
     conf_weight_n = 0
     max_columns = 1
-    for input_path in input_paths:
-        page, stats = _process_page_for_merge(
-            input_path, lang, dpi, char_whitelist, char_blacklist, orientation, force,
-        )
+    for page, stats in _process_pages_for_merge(
+        input_paths, worker_count, lang, dpi, char_whitelist, char_blacklist,
+        orientation, force,
+    ):
         pages.append(page)
         total_words += stats["words"]
         if stats["words"]:
             conf_weighted_sum += stats["mean_conf"] * stats["words"]
             conf_weight_n += stats["words"]
         max_columns = max(max_columns, stats["columns"])
-        log.info(
-            f"'{input_path}': {stats['words']} words "
-            f"(mean confidence {stats['mean_conf']:.1f}%"
-            + (f", {stats['columns']} columns" if stats["columns"] > 1 else "")
-            + ")"
-        )
 
     output_size_bytes = build_searchable_pdf_multipage(
         pages, output_abs, jpeg_quality=jpeg_quality, metadata=pdf_metadata,
@@ -577,6 +663,7 @@ def convert_batch(
     orientation: "str | float | None" = None,
     output_format: str = "pdf",
     debug_image: bool = False,
+    workers: Optional[int] = None,
     verbose: bool = False,
     quiet: bool = False,
 ) -> BatchResult:
@@ -588,6 +675,8 @@ def convert_batch(
         (same directory/stem, extension from output_format). Not valid
         with merge=True, which needs one explicit shared output path.
     merge: combine all inputs into one multi-page PDF.
+    workers: with merge=True, pages processed concurrently (see
+        convert_merge()). Ignored without merge.
     verbose/quiet: set log level for the call.
 
     Never raises for per-file failures. Check BatchResult.failures.
@@ -636,6 +725,7 @@ def convert_batch(
                     lang=lang, dpi=dpi, jpeg_quality=jpeg_quality,
                     char_whitelist=char_whitelist, char_blacklist=char_blacklist,
                     pdf_metadata=pdf_metadata, force=force, orientation=orientation,
+                    workers=workers,
                 ))
             except Exception as exc:
                 failures.append(("<merge>", str(exc)))

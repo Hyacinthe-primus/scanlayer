@@ -78,6 +78,14 @@ def _build_parser() -> argparse.ArgumentParser:
              "be a file path, not a folder.",
     )
     io_group.add_argument(
+        "--workers", type=int, default=None, metavar="N",
+        help="With --merge: process up to N pages at the same time "
+             f"(1-{config.MERGE_WORKERS_LIMIT}, default {config.MERGE_WORKERS}; "
+             "1 = one page at a time). Only changes speed: page order "
+             "and OCR output are the same. Ignored without --merge. "
+             "Equivalent to configure(merge_workers=N).",
+    )
+    io_group.add_argument(
         "--config", default=None,
         help="Path to a .yaml/.yml/.json config profile applied via "
              "configure() before any other option (CLI flags still "

@@ -21,7 +21,7 @@ from scanlayer.cli.dry_run import (
 )
 from scanlayer.cli.parser import _build_parser
 from scanlayer.main import _expand_pdf_input, _resolve_output_path, convert, convert_merge
-from scanlayer.utils.logger import get_logger, log_error
+from scanlayer.utils.logger import get_logger, log_error, log_warning
 
 
 def main(argv: list[str] = None) -> int:
@@ -112,6 +112,12 @@ def main(argv: list[str] = None) -> int:
     if args.merge and (args.output.endswith(("/", "\\")) or os.path.isdir(args.output)):
         log_error(log, "--merge requires -o/--output to be a file path, not a folder.")
         return EXIT_USER_ERROR
+    if args.workers is not None:
+        if args.workers < 1:
+            log_error(log, f"--workers must be 1 or more. Got {args.workers}.")
+            return EXIT_USER_ERROR
+        if not args.merge:
+            log_warning(log, "--workers only applies with --merge, ignoring it.")
 
     raw_inputs: list[str] = []
     for pat in args.input:
@@ -147,6 +153,7 @@ def main(argv: list[str] = None) -> int:
                     pdf_metadata=pdf_metadata,
                     force=args.force,
                     orientation=orientation_value,
+                    workers=args.workers,
                 )
                 return EXIT_OK
             except Exception as exc:

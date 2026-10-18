@@ -8,6 +8,7 @@ confidence. Supports early-exit and parallel execution via threads.
 from __future__ import annotations
 
 import os
+import threading
 import time
 import unicodedata
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
@@ -168,8 +169,29 @@ def _run_ocr(
     )
 
 
-def _safe_run_ocr(*args, psm: int, **kwargs) -> tuple[PsmAttempt | None, Exception | None]:
-    """Run one PSM candidate, converting exceptions into return values."""
+def use_configured_tesseract() -> None:
+    """Point pytesseract at config.TESSERACT_CMD.
+
+    pytesseract keeps the binary path in a module global, and
+    preprocessing's OSD call runs before the first extract_words(), so
+    callers that start concurrent work set it once up front.
+    """
+    pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_CMD
+
+
+def _safe_run_ocr(
+    *args,
+    psm: int,
+    ocr_slots: Optional[threading.Semaphore] = None,
+    **kwargs,
+) -> tuple[PsmAttempt | None, Exception | None]:
+    """Run one PSM candidate, converting exceptions into return values.
+
+    With ocr_slots, waits for a free slot first, so the Tesseract timeout
+    only starts counting once the process actually runs.
+    """
+    if ocr_slots is not None:
+        ocr_slots.acquire()
     try:
         return _run_ocr(*args, **kwargs), None
     except pytesseract.TesseractNotFoundError as exc:
@@ -183,6 +205,9 @@ def _safe_run_ocr(*args, psm: int, **kwargs) -> tuple[PsmAttempt | None, Excepti
     except Exception as exc:  # genuinely unexpected, still surfaced, not swallowed
         log_warning(log, f"PSM {psm}, unexpected error ({type(exc).__name__}: {exc})")
         return None, exc
+    finally:
+        if ocr_slots is not None:
+            ocr_slots.release()
 
 
 def extract_words(
@@ -192,8 +217,13 @@ def extract_words(
     lang: Optional[str] = None,
     char_whitelist: Optional[str] = None,
     char_blacklist: Optional[str] = None,
+    ocr_slots: Optional[threading.Semaphore] = None,
 ) -> OcrResult:
     """Run OCR with automatic PSM selection.
+
+    ocr_slots, if given, is shared by concurrent callers (convert_merge()
+    processing several pages at once) and bounds how many Tesseract passes
+    run at the same time. It never changes which result is selected.
 
     Raises OCRProcessingError if every PSM candidate fails.
     """
@@ -201,7 +231,7 @@ def extract_words(
     wl = char_whitelist if char_whitelist is not None else config.TESSERACT_CHAR_WHITELIST
     bl = char_blacklist if char_blacklist is not None else config.TESSERACT_CHAR_BLACKLIST
 
-    pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_CMD
+    use_configured_tesseract()
     tess_base = f'--tessdata-dir "{config.TESSDATA_DIR}"' if config.TESSDATA_DIR else ""
 
     psm_candidates = list(config.TESSERACT_PSM_CANDIDATES)
@@ -224,7 +254,7 @@ def extract_words(
         if len(psm_candidates) == 1:
             attempt, error = _safe_run_ocr(
                 ocr_image, lang, psm_candidates[0], tess_base,
-                effective_dpi, wl, bl, psm=psm_candidates[0],
+                effective_dpi, wl, bl, psm=psm_candidates[0], ocr_slots=ocr_slots,
             )
             if attempt is not None:
                 attempts.append(attempt)
@@ -236,12 +266,13 @@ def extract_words(
             max_workers = config.PSM_MAX_WORKERS or min(32, (os.cpu_count() or 1) + 4)
             max_workers = min(max_workers, len(psm_candidates))
             can_skip_unstarted = max_workers < len(psm_candidates)
+            order = {psm: i for i, psm in enumerate(psm_candidates)}
 
             executor = ThreadPoolExecutor(max_workers=max_workers)
             futures = {
                 executor.submit(
                     _safe_run_ocr, ocr_image, lang, psm, tess_base,
-                    effective_dpi, wl, bl, psm=psm,
+                    effective_dpi, wl, bl, psm=psm, ocr_slots=ocr_slots,
                 ): psm
                 for psm in psm_candidates
             }
@@ -253,7 +284,14 @@ def extract_words(
                         attempt, error = future.result()
                         if attempt is not None:
                             attempts.append(attempt)
-                            if best is None or attempt.mean_confidence > best.mean_confidence:
+                            if (
+                                best is None
+                                or attempt.mean_confidence > best.mean_confidence
+                                or (
+                                    attempt.mean_confidence == best.mean_confidence
+                                    and order[attempt.psm] < order[best.psm]
+                                )
+                            ):
                                 best = attempt
                         else:
                             errors.append(error)
@@ -277,7 +315,7 @@ def extract_words(
             for psm in psm_candidates:
                 attempt, error = _safe_run_ocr(
                     ocr_image, lang, psm, tess_base,
-                    effective_dpi, wl, bl, psm=psm,
+                    effective_dpi, wl, bl, psm=psm, ocr_slots=ocr_slots,
                 )
                 if attempt is not None:
                     attempts.append(attempt)
