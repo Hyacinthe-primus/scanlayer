@@ -23,7 +23,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=7.0", "pytest-cov>=4.1"]
+test = ["pytest>=7.0", "pytest-cov>=4.1", "pypdf>=4.0"]
+bench = ["psutil>=5.9", "pypdf>=4.0"]
 yaml = ["PyYAML>=6.0"]
 
 [project.scripts]

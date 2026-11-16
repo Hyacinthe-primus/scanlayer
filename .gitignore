@@ -10,4 +10,6 @@ dist/
 coverage.xml
 htmlcov/
 docs/
+benchmarks/.cache/
+benchmarks/results/
 scanlayer_social_preview.png
