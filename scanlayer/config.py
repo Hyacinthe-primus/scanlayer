@@ -95,7 +95,15 @@ PSM_MAX_WORKERS = None
 MERGE_WORKERS = 3
 MERGE_WORKERS_LIMIT = 4
 
+# Normal non-merge batch conversions. 1 = the original sequential path.
+# Kept conservative because every page can already run several PSM passes.
+BATCH_WORKERS = 2
+
 OCR_TIMEOUT_SECONDS = 45
+OSD_TIMEOUT_SECONDS = 30
+# None means os.cpu_count(). This is a process-wide ceiling across all
+# Tesseract passes, including merge page workers.
+OCR_MAX_CONCURRENCY = None
 
 # PSM candidates: engine.py runs one pass per PSM, keeps highest mean confidence.
 #   3=fully automatic, 4=single column, 6=uniform block, 11=sparse text
@@ -168,7 +176,10 @@ _CONFIGURABLE_KEYS = {
     "psm_parallel": "PSM_PARALLEL",
     "psm_max_workers": "PSM_MAX_WORKERS",
     "merge_workers": "MERGE_WORKERS",
+    "batch_workers": "BATCH_WORKERS",
     "ocr_timeout_seconds": "OCR_TIMEOUT_SECONDS",
+    "osd_timeout_seconds": "OSD_TIMEOUT_SECONDS",
+    "ocr_max_concurrency": "OCR_MAX_CONCURRENCY",
     "char_whitelist": "TESSERACT_CHAR_WHITELIST",
     "char_blacklist": "TESSERACT_CHAR_BLACKLIST",
     "jpeg_quality": "PDF_JPEG_QUALITY",

@@ -15,6 +15,12 @@ def test_configure_multiple_keys_at_once():
     assert config.PDF_JPEG_QUALITY == 95
 
 
+def test_configure_osd_timeout():
+    config.configure(osd_timeout_seconds=12)
+    assert config.OSD_TIMEOUT_SECONDS == 12
+    assert config.get_settings()["osd_timeout_seconds"] == 12
+
+
 def test_configure_unknown_key_raises():
     with pytest.raises(ValueError, match="unknown option"):
         config.configure(not_a_real_setting="x")
