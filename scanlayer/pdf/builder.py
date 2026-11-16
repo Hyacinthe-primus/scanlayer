@@ -33,18 +33,58 @@ _MAX_FONT_SIZE_PT = 400.0
 _MIN_HORIZ_SCALE_PCT = 1.0
 _MAX_HORIZ_SCALE_PCT = 1000.0
 
+# Classification only needs a sample. Ambiguous samples fall back to the
+# exact full-image computation, so subtle color/grayscale pages keep the
+# previous behavior.
+_DETECTION_MAX_DIM = 600
+_AMBIGUOUS_LOW = 0.5
+_AMBIGUOUS_HIGH = 2.0
 
-def _is_mostly_grayscale(image: Image.Image, threshold: float = None) -> bool:
-    """Return True if the image is visually near-grayscale (low chrominance)."""
-    if image.mode == "L":
-        return True
-    if image.mode != "RGB":
-        image = image.convert("RGB")
-    arr = np.asarray(image)
+
+def _colored_fraction(image: Image.Image) -> float:
+    """Fraction of sampled pixels whose RGB saturation exceeds ~10%."""
+    rgb = image if image.mode == "RGB" else image.convert("RGB")
+    arr = np.asarray(rgb)
     # Approximate saturation: max - min across RGB channels.
     sat = arr.max(axis=2).astype(np.int16) - arr.min(axis=2).astype(np.int16)
+    return float((sat > 25).mean())
+
+
+def _is_mostly_grayscale(image: Image.Image, threshold: float = None) -> bool:
+    """Return True if the image is visually near-grayscale (low chrominance).
+
+    A reduced copy handles the clear cases quickly. If the sampled fraction
+    is near the threshold, the exact full-image fraction is used so borderline
+    documents are not silently converted to grayscale.
+    """
+    if image.mode in ("L", "1"):
+        return True
     threshold = threshold if threshold is not None else config.PDF_GRAYSCALE_THRESHOLD
-    fraction_colored = float((sat > 25).mean())  # sat > ~10% = colored pixel
+
+    if max(image.size) > _DETECTION_MAX_DIM:
+        sample = image.copy()
+        try:
+            sample.thumbnail(
+                (_DETECTION_MAX_DIM, _DETECTION_MAX_DIM),
+                Image.Resampling.NEAREST,
+            )
+            sampled_fraction = _colored_fraction(sample)
+        finally:
+            sample.close()
+        if sampled_fraction < threshold * _AMBIGUOUS_LOW:
+            log.debug(
+                f"Compression detector: colored fraction {sampled_fraction:.4f} "
+                f"(sampled, clearly grayscale)"
+            )
+            return True
+        if sampled_fraction > threshold * _AMBIGUOUS_HIGH:
+            log.debug(
+                f"Compression detector: colored fraction {sampled_fraction:.4f} "
+                f"(sampled, clearly color)"
+            )
+            return False
+
+    fraction_colored = _colored_fraction(image)
     log.debug(
         f"Compression detector: colored pixel fraction = {fraction_colored:.4f} "
         f"(grayscale threshold = {threshold})"
@@ -55,16 +95,19 @@ def _is_mostly_grayscale(image: Image.Image, threshold: float = None) -> bool:
 def _is_mostly_binary(image: Image.Image) -> bool:
     """Detect if an image is near-binary (black text on white background).
 
-    For near-binary content, PNG is lighter and lossless vs JPEG.
+    For near-binary content, lossless flate is smaller than JPEG. PIL's
+    histogram runs in C over the 8-bit data and gives exactly the same 8-bin
+    extreme fraction as the previous float32 NumPy histogram, without a
+    full-image float allocation.
     """
     if image.mode != "L":
         image = image.convert("L")
-    arr = np.asarray(image, dtype=np.float32)
-    hist, _ = np.histogram(arr, bins=8, range=(0, 256))
-    total = arr.size
+    hist = image.histogram()
+    total = image.width * image.height
     if total == 0:
         return False
-    extreme_fraction = (hist[0] + hist[-1]) / total
+    # np.histogram(..., bins=8, range=(0, 256)) used bins 0 and 7.
+    extreme_fraction = (sum(hist[:32]) + sum(hist[-32:])) / total
     is_binary = extreme_fraction > 0.80
     log.debug(
         f"Compression detector: extreme pixel fraction = {extreme_fraction:.4f} "
@@ -84,17 +127,21 @@ def _as_jpeg_reader(image: Image.Image, quality: int) -> ImageReader:
     return ImageReader(buffer)
 
 
-def _as_png_reader(image: Image.Image) -> ImageReader:
-    """Encode image as PNG (lossless) in a memory buffer.
+def _as_lossless_reader(image: Image.Image) -> ImageReader:
+    """Pass a PIL image directly to ReportLab for lossless flate embedding.
 
-    Converts to L mode if near-grayscale to save ~60% of size.
+    ReportLab accepts RGB and L PIL images natively and flate-compresses the
+    raw pixels. Pre-encoding to PNG only made ReportLab decode it again.
     """
     if _is_mostly_grayscale(image):
-        image = image.convert("L")
-    buffer = io.BytesIO()
-    image.save(buffer, format="PNG", optimize=True)
-    buffer.seek(0)
-    return ImageReader(buffer)
+        if image.mode != "L":
+            image = image.convert("L")
+        log.info("Background compression: lossless grayscale (flate)")
+    else:
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+        log.info("Background compression: lossless RGB (flate)")
+    return ImageReader(image)
 
 
 def _select_background_reader(
@@ -102,12 +149,15 @@ def _select_background_reader(
 ) -> ImageReader:
     """Chooses the best compression strategy for the PDF background.
 
-    1. If PDF_ADAPTIVE_COMPRESSION and image is near-binary -> PNG (L mode if grayscale).
+    1. Near-binary -> direct lossless flate (L when grayscale, RGB otherwise).
     2. Otherwise -> JPEG at the configured quality.
+
+    ASCII85 is intentionally left at ReportLab's process-global default.
+    Disabling it would add a global side effect for other ReportLab users and
+    concurrent PDF generation; the safe per-document API does not expose it.
     """
     if config.PDF_ADAPTIVE_COMPRESSION and _is_mostly_binary(image):
-        log.info("Background compression: PNG (near-binary image detected)")
-        return _as_png_reader(image)
+        return _as_lossless_reader(image)
     log.info(f"Background compression: JPEG q={jpeg_quality}")
     return _as_jpeg_reader(image, jpeg_quality)
 
