@@ -104,7 +104,9 @@ print(f&quot;PSM {result.best_psm} won in {result.elapsed_ms:.0f} ms&quot;)</cod
 
 <h2 id="batch">Batch conversion</h2>
 <p>Multiple inputs, one output per input, glob patterns and mixed extensions welcome.
-A bad file in the batch never aborts the rest.</p>
+A bad file in the batch never aborts the rest. Separate files are converted concurrently:
+2 at a time by default, or whatever <code>--batch-workers</code> / <code>batch_workers=</code>
+says (<code>1</code> = sequential).</p>
 <div class="tabs" id="tabs-2">
   <div class="tab-buttons" role="tablist">
     <button type="button" class="active" data-tab="cli" role="tab" aria-selected="true">CLI</button>
@@ -115,7 +117,8 @@ A bad file in the batch never aborts the rest.</p>
   <div class="code-head"><span class="lang-tag">bash</span>
     <button class="copy-btn" type="button">copy</button>
   </div>
-  <pre><code class="language-bash">scanlayer *.jpg -o ./converted/</code></pre>
+  <pre><code class="language-bash"># 2 files at a time (the default); use 1 for sequential
+scanlayer *.jpg -o ./converted/ --batch-workers 2</code></pre>
 </div>
   </div>
   <div class="tab-panel" data-panel="lib">
@@ -125,16 +128,20 @@ A bad file in the batch never aborts the rest.</p>
   </div>
   <pre><code class="language-python">import scanlayer
 
-result = scanlayer.convert_batch([&quot;*.jpg&quot;], &quot;./converted/&quot;)
+result = scanlayer.convert_batch(
+    [&quot;*.jpg&quot;], &quot;./converted/&quot;, batch_workers=2,
+)
 print(f&quot;{result.succeeded} ok, {result.failed} failed&quot;)
 for path, err in result.failures:
     print(f&quot;  {path}: {err}&quot;)</code></pre>
 </div>
   </div>
 </div>
-<p>The CLI signals a partial failure with exit code <code>5</code>; the library never raises
-for a per-file problem, check <code>BatchResult.failures</code> instead. See
-<a href="cli-reference.html#exit-codes">exit codes</a> and
+<p>Results stay in input order whatever order they finish in. Native PDF inputs are
+rasterized incrementally as workers free up, so memory is bounded by the active workers
+rather than total page count. The CLI signals a partial failure with exit code <code>5</code>;
+the library never raises for a per-file problem, check <code>BatchResult.failures</code>
+instead. See <a href="cli-reference.html#exit-codes">exit codes</a> and
 <a href="library-api.html#convert-batch">convert_batch()</a>.</p>
 
 <h2 id="merge">Merge several pages into one PDF</h2>

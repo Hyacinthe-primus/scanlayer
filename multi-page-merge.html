@@ -77,7 +77,7 @@ one output per input.</p>
   <div class="code-head"><span class="lang-tag">bash</span>
     <button class="copy-btn" type="button">copy</button>
   </div>
-  <pre><code class="language-bash">scanlayer *.jpg -o ./converted/</code></pre>
+  <pre><code class="language-bash">scanlayer *.jpg -o ./converted/ --batch-workers 2</code></pre>
 </div>
   </div>
   <div class="tab-panel" data-panel="lib">
@@ -85,10 +85,21 @@ one output per input.</p>
   <div class="code-head"><span class="lang-tag">python</span><span class="filename">batch.py</span>
     <button class="copy-btn" type="button">copy</button>
   </div>
-  <pre><code class="language-python">result = scanlayer.convert_batch([&quot;*.jpg&quot;], &quot;./converted/&quot;)</code></pre>
+  <pre><code class="language-python">result = scanlayer.convert_batch(
+    [&quot;*.jpg&quot;], &quot;./converted/&quot;, batch_workers=2,
+)</code></pre>
 </div>
   </div>
 </div>
+<h3 id="batch-workers">Converting several files at once</h3>
+<p>Separate files in a non-merge batch are converted concurrently, 2 at a time by default,
+with <code>--batch-workers N</code> / <code>batch_workers=N</code> /
+<code>configure(batch_workers=N)</code>. <code>1</code> restores the original sequential
+behavior. The value is capped by the number of inputs and your CPU count, results stay in
+input order whatever order they finish in, and a single process-wide OCR ceiling
+(<code>ocr_max_concurrency</code>, default CPU count) still limits how many Tesseract passes
+run at once. <code>--workers</code>/<code>workers=</code> remains merge-only; the two options
+are independent.</p>
 <p>A single bad file does not abort the batch. CLI exit code <code>5</code> signals a
 partial failure; in the library, check <code>BatchResult.failures</code>. See
 <a href="library-api.html#convert-batch">Library API &rarr; convert_batch()</a>.</p>
@@ -151,14 +162,22 @@ input order is the one reported, and pages that have not started yet are skipped
 
 <h2 id="pdf-input">Native PDF input</h2>
 <p>A <code>.pdf</code> file given as input is automatically rasterized page by page
-(via <code>pdf2image</code>/poppler) before OCR.</p>
+(via <code>pdf2image</code>/poppler) before OCR. In a normal non-merge batch, pages are
+enumerated during planning and rasterized incrementally as workers free up, so peak memory
+is bounded by the active workers instead of the whole document.</p>
 <div class="table-wrap">
 <table>
 <thead><tr><th>With --merge</th><th>Without --merge</th></tr></thead>
 <tbody>
-<tr><td>Re-runs OCR over an existing PDF and gets one PDF back out.</td><td>Gets one output file per source page.</td></tr>
+<tr><td>Re-runs OCR over an existing PDF and gets one PDF back out.</td><td>Gets one output file per source page, rasterized incrementally while the batch runs.</td></tr>
 </tbody>
 </table>
+</div>
+<div class="callout warn">
+  <span class="callout-title">Merge is not streamed</span>
+  A merge still expands all pages up front and keeps every processed page until the combined
+  PDF is written, so its memory scales with document length. If a large PDF only needs one
+  output per page, run it as a normal batch instead of <code>--merge</code>.
 </div>
 <div class="callout danger">
   <span class="callout-title">Requires poppler on PATH</span>

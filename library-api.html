@@ -207,6 +207,7 @@ except scanlayer.utils.errors.BlankPageDetectedError:
     output_format: str = &quot;pdf&quot;,
     debug_image: bool = False,
     workers: Optional[int] = None,
+    batch_workers: Optional[int] = None,
     verbose: bool = False,
     quiet: bool = False,
 ) -&gt; BatchResult</code></pre>
@@ -215,8 +216,9 @@ except scanlayer.utils.errors.BlankPageDetectedError:
 <li><code>inputs</code> accepts a single pattern/path or a list, mixed extensions welcome:
 <code>["*.png", "*.jpg", "*.pdf", "specific.tiff"]</code>. Each entry is glob-expanded;
 a literal path that doesn't match a glob passes through and is left for <code>convert()</code>
-to raise on if it doesn't exist. Any <code>.pdf</code> input is rasterized to one image per
-page first.</li>
+to raise on if it doesn't exist. Any <code>.pdf</code> input is rasterized page by page;
+in a non-merge batch, pages are rasterized incrementally as workers free up, so peak
+memory does not grow with total page count.</li>
 <li><code>output</code> is a folder (created if it doesn't exist): one output file per input,
 named after the input's stem plus the <code>output_format</code> extension. If omitted,
 each output file is written next to its own input instead, same stem and extension
@@ -226,10 +228,16 @@ stay <code>"pdf"</code>; <code>output</code> is required in that case, since the
 no single input to derive a shared name from.</li>
 <li><code>workers</code> only matters with <code>merge=True</code>: how many pages are processed at
 the same time, exactly as in <a href="#convert-merge"><code>convert_merge()</code></a>. It is ignored otherwise.</li>
+<li><code>batch_workers</code> only matters without <code>merge=True</code>: how many files are
+converted at the same time. <code>None</code> (the default) uses
+<code>configure(batch_workers=...)</code>, which defaults to 2, and <code>1</code> restores
+the original sequential path. The value is capped by the input count and CPU count, and
+the shared OCR ceiling (<code>configure(ocr_max_concurrency=...)</code>) still limits
+simultaneous Tesseract passes. Results stay in input order whatever order they finish in.</li>
 <li>Every other keyword argument is the same as <code>convert()</code>, applied to every file.</li>
-<li><code>verbose</code>/<code>quiet</code> set the log level for the whole call, equivalent to
-<code>configure(log_level="DEBUG"/"ERROR")</code>. Mutually exclusive: passing both raises
-<code>ValueError</code>.</li>
+<li><code>verbose</code>/<code>quiet</code> set the log level for the duration of the call and
+restore it afterward (unlike a permanent <code>configure(log_level=...)</code> call).
+Mutually exclusive: passing both raises <code>ValueError</code>.</li>
 </ul>
 <div class="code-block">
   <div class="code-head"><span class="lang-tag">python</span>
@@ -237,11 +245,19 @@ the same time, exactly as in <a href="#convert-merge"><code>convert_merge()</cod
   </div>
   <pre><code class="language-python">result = scanlayer.convert_batch(
     [&quot;*.png&quot;, &quot;*.jpg&quot;, &quot;*.pdf&quot;], &quot;./converted/&quot;,
-    lang=&quot;fra&quot;, force=True, quiet=True,
+    lang=&quot;fra&quot;, force=True, quiet=True, batch_workers=2,
 )
 print(f&quot;{result.succeeded} ok, {result.failed} failed&quot;)
 for path, err in result.failures:
     print(f&quot;  {path}: {err}&quot;)</code></pre>
+</div>
+<div class="callout tip">
+  <span class="callout-title">Files run in parallel, pages stream in</span>
+  A non-merge batch converts up to <code>batch_workers</code> files at once while keeping
+  results in input order. Native PDFs are enumerated during planning and rasterized only
+  as a worker needs the next page, so memory is bounded by the active workers rather than
+  total page count. Merge is the exception: it still holds every page until the combined
+  PDF is written.
 </div>
 <h3>Return value: <code>BatchResult</code></h3>
 <div class="code-block">
@@ -307,6 +323,9 @@ integer) raises <code>ValueError</code>. It only changes speed: pages stay in in
 OCR result is the same. If a page fails, the first bad page in input order is the one reported,
 and pages that have not started yet are skipped. See
 <a href="multi-page-merge.html#merge-workers">Multi-Page and Merge</a> for what speedup to expect.</p>
+<p>Parallel page processing does not make the merge streaming: every page is retained until the
+combined PDF is written, so memory scales with the total page count. Splitting a document into
+several normal batches (or not using <code>merge=True</code>) avoids that.</p>
 
 <h2 id="exceptions">Exceptions</h2>
 <div class="table-wrap">

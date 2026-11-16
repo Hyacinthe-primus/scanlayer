@@ -68,7 +68,8 @@ library source directly: if it is not listed here, it is not implemented (see
 <ul><li>Turn a scanned image or photo into a searchable PDF with an invisible, selectable text layer (<code>convert()</code>, <code>scanlayer input -o output.pdf</code>).</li>
 <li>Export the raw OCR result instead of a PDF, as plain text, JSON, TSV, or hOCR, with no PDF built at all (<code>--format</code> / <code>output_format=</code>). See <a href="output-formats.html">Output Formats</a>.</li>
 <li>Accept native <code>.pdf</code> files as input, automatically rasterized page by page before OCR (requires poppler). See <a href="multi-page-merge.html">Multi-Page and Merge</a>.</li>
-<li>Batch-convert many files in one call, mixed extensions and glob patterns welcome, one output per input.</li>
+<li>Batch-convert many files in one call, mixed extensions and glob patterns welcome, one output per input, with a bounded worker pool (2 files at a time by default, <code>--batch-workers</code>).</li>
+<li>Incremental native-PDF rasterization in non-merge batches: pages are enumerated first and rasterized only as workers need them, so peak memory tracks the active workers rather than total page count.</li>
 <li>Merge several images, or every page of a source PDF, into one multi-page searchable PDF (<code>--merge</code> / <code>convert_merge()</code>).</li>
 <li>Process up to 4 pages of a merge at the same time (3 by default; <code>--workers</code> / <code>workers=</code> / <code>configure(merge_workers=...)</code>), with page order and OCR output unchanged. See <a href="multi-page-merge.html#merge-workers">Multi-Page and Merge</a>.</li>
 <li>Validate an entire batch before committing to OCR: every input exists and is readable, Tesseract is reachable, output paths are writable (<code>--dry-run</code>, CLI only; library callers get the same checks via <code>validate_all()</code>).</li>
@@ -91,7 +92,8 @@ library source directly: if it is not listed here, it is not implemented (see
 <ul><li>Automatic page segmentation mode (PSM) selection: several candidate PSMs are tried and the one with the highest mean confidence wins.</li>
 <li>Early exit once a candidate clears a configurable confidence threshold, skipping the rest.</li>
 <li>Parallel OCR passes across PSM candidates via a thread pool (Tesseract releases the GIL while running, so this is a real speedup), with a configurable worker cap.</li>
-<li>Per-pass timeout, so a hung Tesseract process cannot hang the whole pipeline.</li>
+<li>One optional process-wide ceiling on simultaneous Tesseract passes (<code>ocr_max_concurrency</code>), shared by batch conversion and merge page workers, so parallelism cannot silently multiply.</li>
+<li>Per-pass timeout, so a hung Tesseract process cannot hang the whole pipeline, plus a separate orientation/script detection timeout.</li>
 <li>Configurable Tesseract engine mode (legacy, LSTM, or both).</li>
 <li>Character whitelisting and blacklisting for constrained fields (pure numeric codes, for example).</li>
 <li>Multi-language OCR (<code>--lang fra+eng</code>, or any Tesseract language combination).</li>
@@ -109,7 +111,7 @@ library source directly: if it is not listed here, it is not implemented (see
 
 <h2 id="pdf">Output and PDF construction</h2>
 <ul><li>Invisible, selectable text layer (PDF render mode 3) precisely positioned and horizontally stretched to match each word's detected bounding box.</li>
-<li>Adaptive background compression: lossless PNG for near-binary (black-text-on-white) pages, JPEG otherwise, at a configurable quality.</li>
+<li>Adaptive background compression: near-binary (black-text-on-white) pages are passed straight to ReportLab as lossless flate, with no PNG re-encode step; everything else becomes JPEG at a configurable quality.</li>
 <li>Automatic grayscale encoding when the source image has negligible color, cutting background size roughly threefold.</li>
 <li>Automatic font selection for the invisible text layer based on OCR language (a CJK CID font, a bundled DejaVu Sans, or a Helvetica fallback), or a manual override with any TTF font.</li>
 <li>Standard PDF metadata: title, author, subject, creator, keywords.</li>
@@ -127,9 +129,12 @@ library source directly: if it is not listed here, it is not implemented (see
 
 <h2 id="batch">Batch and multi-page handling</h2>
 <ul><li>One-call batch conversion with glob expansion and automatic native-PDF page rasterization built in.</li>
+<li>Bounded parallel conversion of separate files (<code>--batch-workers</code> / <code>batch_workers=</code>, 2 by default, 1 = sequential), with results returned in input order regardless of completion order.</li>
+<li>Incremental PDF page rasterization for normal batches: pages are grouped into small chunks sized to the active workers, so a long PDF no longer requires every page image in memory at once.</li>
 <li>Per-file failure isolation: one bad file in a batch does not stop the rest, and every failure is reported individually.</li>
 <li>Automatic output file naming from each input's stem when writing to a folder.</li>
-<li>Multi-page merge from either several separate images or the pages of a single source PDF, in a consistent page order.</li></ul>
+<li>Multi-page merge from either several separate images or the pages of a single source PDF, in a consistent page order.</li>
+<li>The same global OCR ceiling applies across batch workers and merge page workers, instead of each layer opening its own unbounded pool.</li></ul>
 
 <h2 id="debug">Debug and diagnostics</h2>
 <ul><li><code>--debug-image</code> overlay: every recognized word boxed and colored by confidence tier, with its confidence score printed above it.</li>
