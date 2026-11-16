@@ -18,9 +18,34 @@ import pytesseract
 from PIL import Image, ImageOps
 
 from scanlayer import config
+from scanlayer.ocr.engine import tessdata_config, use_configured_tesseract
 from scanlayer.utils.logger import get_logger, log_warning, stage_timer
 
 log = get_logger(__name__)
+
+# Below this factor, keep the historical resize-before-filter order so
+# near-target-width images (e.g. a 2480 px A4 scan targeted at 2500 px) keep
+# their exact OCR input. Larger upscales (low-resolution photos/receipts) are
+# filtered at native resolution and upscaled afterwards, which avoids running
+# expensive filters on interpolated pixels that contain no extra detail.
+_DEFER_UPSCALE_FACTOR = 1.5
+
+# Illumination is low-frequency. Estimating it at quarter resolution keeps
+# the large-sigma Gaussian/morphology cheap; the estimate is upsampled before
+# the division. Images below this side length use the full-resolution path.
+_SHADOW_ESTIMATE_SCALE = 0.25
+_SHADOW_MIN_ESTIMATE_SIDE = 256
+
+# Skew angle is also scale-invariant. Estimate it on a reduced copy so a
+# noisy/shadowed page does not spend ~1 s in minAreaRect over millions of
+# foreground pixels; the warp still runs at full resolution.
+_DESKEW_ESTIMATE_SCALE = 0.25
+_DESKEW_MIN_ESTIMATE_SIDE = 256
+
+# OSD only needs enough text to determine 0/90/180/270. Capping the image
+# avoids expensive full-resolution Tesseract startup/decoding; 2000 px was
+# accurate on the audit's 0/90/180/270 pages, while 1200 px was not.
+_OSD_THUMBNAIL_MAX_DIM = 2000
 
 
 @dataclass
@@ -71,8 +96,29 @@ def _apply_exif_orientation(image: Image.Image) -> tuple[Image.Image, int]:
 
 def _fix_gross_orientation(image: Image.Image) -> tuple[Image.Image, int]:
     """Correct obvious rotations (0/90/180/270) using Tesseract OSD."""
+    # OSD is a Tesseract subprocess like any OCR pass; use the same
+    # configured binary and tessdata, and cap the image size. Full-resolution
+    # OSD costs seconds on A4/noisy pages without improving 0/90/180/270.
+    use_configured_tesseract()
+    osd_image = image
+    owns_osd_image = False
+    if max(image.size) > _OSD_THUMBNAIL_MAX_DIM:
+        osd_image = image.copy()
+        osd_image.thumbnail(
+            (_OSD_THUMBNAIL_MAX_DIM, _OSD_THUMBNAIL_MAX_DIM),
+            Image.Resampling.LANCZOS,
+        )
+        owns_osd_image = True
+
+    rotate = 0
+    confidence = 0.0
     try:
-        osd = pytesseract.image_to_osd(image, output_type=pytesseract.Output.DICT)
+        osd = pytesseract.image_to_osd(
+            osd_image,
+            config=tessdata_config(),
+            output_type=pytesseract.Output.DICT,
+            timeout=config.OSD_TIMEOUT_SECONDS,
+        )
         rotate = int(osd.get("rotate", 0))
         confidence = float(osd.get("orientation_conf", 0))
     except pytesseract.TesseractError as exc:
@@ -82,15 +128,24 @@ def _fix_gross_orientation(image: Image.Image) -> tuple[Image.Image, int]:
             f"orientation not corrected. Detail: {exc}"
         )
         return image, 0
+    except RuntimeError as exc:
+        log_warning(
+            log,
+            f"OSD timed out or failed after {config.OSD_TIMEOUT_SECONDS}s "
+            f"({type(exc).__name__}), orientation not corrected."
+        )
+        return image, 0
     except Exception as exc:
-        # Non-Tesseract error (most often: missing tessdata, or
-        # image too large for OSD which downscales poorly internally).
+        # Non-Tesseract error (most often: missing tessdata).
         log_warning(
             log,
             f"OSD failed ({type(exc).__name__}: {exc}), "
             f"orientation not corrected."
         )
         return image, 0
+    finally:
+        if owns_osd_image:
+            osd_image.close()
 
     if rotate == 0:
         log.debug(f"OSD: orientation OK (conf={confidence:.1f})")
@@ -130,13 +185,53 @@ def _rotate_by_angle(cv_image: np.ndarray, angle: float) -> np.ndarray:
     )
 
 
+def _estimate_skew_angle(gray: np.ndarray) -> "float | None":
+    """Estimate tilt from an Otsu mask, using a reduced-resolution copy.
+
+    ``minAreaRect`` over millions of noisy foreground pixels dominated deskew
+    time on shadowed/noisy pages. The angle is scale-invariant, so estimate it
+    on a 1/4 copy when the image is large enough; the warp itself still runs
+    at full resolution.
+    """
+    h, w = gray.shape[:2]
+    scale = (
+        _DESKEW_ESTIMATE_SCALE
+        if min(h, w) >= _DESKEW_MIN_ESTIMATE_SIDE else 1.0
+    )
+    sample = gray
+    if scale != 1.0:
+        sample = cv2.resize(
+            gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA,
+        )
+    thresh = cv2.threshold(
+        sample, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU
+    )[1]
+    coords = cv2.findNonZero(thresh)
+    min_pixels = max(1, int(config.DESKEW_MIN_PIXELS * scale * scale))
+    if coords is None or len(coords) < min_pixels:
+        log.debug(
+            f"Deskew: not enough signal "
+            f"({0 if coords is None else len(coords)} pixels < "
+            f"{min_pixels}), image is probably empty."
+        )
+        return None
+
+    angle = cv2.minAreaRect(coords)[-1]
+    if angle < -45:
+        angle = -(90 + angle)
+    else:
+        angle = -angle
+    return angle
+
+
 def _deskew_fine(cv_image: np.ndarray) -> tuple[np.ndarray, float, float]:
     """Correct slight tilt via minAreaRect on text pixels.
 
     Returns (corrected_image, applied_angle, source_std).
     """
     gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
-    source_std = float(gray.std())
+    _, stddev = cv2.meanStdDev(gray)
+    source_std = float(stddev[0][0])
 
     if source_std < config.DESKEW_MIN_STD:
         log.debug(
@@ -145,23 +240,9 @@ def _deskew_fine(cv_image: np.ndarray) -> tuple[np.ndarray, float, float]:
         )
         return cv_image, 0.0, source_std
 
-    thresh = cv2.threshold(
-        gray, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU
-    )[1]
-
-    coords = np.column_stack(np.where(thresh > 0))
-    if len(coords) < config.DESKEW_MIN_PIXELS:
-        log.debug(
-            f"Deskew: not enough signal ({len(coords)} pixels < "
-            f"{config.DESKEW_MIN_PIXELS}), image is probably empty."
-        )
+    angle = _estimate_skew_angle(gray)
+    if angle is None:
         return cv_image, 0.0, source_std
-
-    angle = cv2.minAreaRect(coords)[-1]
-    if angle < -45:
-        angle = -(90 + angle)
-    else:
-        angle = -angle
 
     if abs(angle) > config.DESKEW_MAX_ANGLE:
         log_warning(
@@ -199,25 +280,47 @@ def _remove_shadows(gray: np.ndarray) -> np.ndarray:
     """Correct non-uniform illumination (cast shadows, light gradients).
 
     Divides by a background estimate (Gaussian + morphological closing).
+    The estimate is low-frequency, so it is computed on a reduced-resolution
+    copy and upsampled; this avoids a full-resolution Gaussian with a very
+    large sigma, which dominates preprocessing time on A4/high-res pages.
     """
     h, w = gray.shape[:2]
 
     sigma = max(31.0, min(w, h) / 20.0)
-    bg_gauss = cv2.GaussianBlur(gray, (0, 0), sigmaX=sigma)
-
     kernel_size = min(51, max(21, min(w, h) // 50))
     if kernel_size % 2 == 0:
         kernel_size += 1
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
-    bg_morph = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
 
-    background = np.maximum(bg_gauss, bg_morph)
-    background = np.where(background == 0, 1, background).astype(np.float32)
-    normalized = cv2.divide(
-        gray.astype(np.float32), background, scale=255.0
-    )
-    normalized = np.clip(normalized, 0, 255).astype(np.uint8)
-    return normalized
+    if min(w, h) >= _SHADOW_MIN_ESTIMATE_SIDE:
+        scale = _SHADOW_ESTIMATE_SCALE
+        small_w = max(1, int(round(w * scale)))
+        small_h = max(1, int(round(h * scale)))
+        small = cv2.resize(
+            gray, (small_w, small_h), interpolation=cv2.INTER_AREA,
+        )
+        small_sigma = max(1.0, sigma * scale)
+        small_kernel_size = max(3, int(round(kernel_size * scale)))
+        if small_kernel_size % 2 == 0:
+            small_kernel_size += 1
+        small_kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE, (small_kernel_size, small_kernel_size),
+        )
+        bg_gauss = cv2.GaussianBlur(small, (0, 0), sigmaX=small_sigma)
+        bg_morph = cv2.morphologyEx(small, cv2.MORPH_CLOSE, small_kernel)
+        background = cv2.resize(
+            np.maximum(bg_gauss, bg_morph), (w, h),
+            interpolation=cv2.INTER_LINEAR,
+        )
+    else:
+        kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE, (kernel_size, kernel_size),
+        )
+        bg_gauss = cv2.GaussianBlur(gray, (0, 0), sigmaX=sigma)
+        bg_morph = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
+        background = np.maximum(bg_gauss, bg_morph)
+
+    background = np.maximum(background, 1)
+    return cv2.divide(gray, background, scale=255)
 
 
 def _sharpen(gray: np.ndarray) -> np.ndarray:
@@ -234,6 +337,11 @@ def _build_ocr_image(
 ) -> tuple[np.ndarray, float, int, tuple]:
     """Build the grayscale copy optimized for Tesseract.
 
+    Downscaling happens before the expensive filters; upscaling happens
+    after them. The illumination background and denoiser are low-frequency /
+    edge-preserving operations and should not run at an upscaled resolution
+    that adds no detail.
+
     Returns (ocr_image, scale, effective_dpi, warnings).
     """
     warnings_list: list[str] = []
@@ -241,17 +349,8 @@ def _build_ocr_image(
     orig_width = gray.shape[1]
 
     scale = 1.0
-    if orig_width < config.OCR_UPSCALE_MIN_WIDTH:
-        scale = config.OCR_UPSCALE_MIN_WIDTH / orig_width
-        gray = cv2.resize(
-            gray, None, fx=scale, fy=scale,
-            interpolation=cv2.INTER_CUBIC,
-        )
-        log.debug(
-            f"Upscale x{scale:.2f}: {orig_width}px -> {gray.shape[1]}px "
-            f"(below {config.OCR_UPSCALE_MIN_WIDTH}px)"
-        )
-    elif orig_width > config.OCR_DOWNSCALE_MAX_WIDTH:
+    post_scale = 1.0
+    if orig_width > config.OCR_DOWNSCALE_MAX_WIDTH:
         scale = config.OCR_DOWNSCALE_MAX_WIDTH / orig_width
         gray = cv2.resize(
             gray, None, fx=scale, fy=scale,
@@ -262,8 +361,24 @@ def _build_ocr_image(
             f"- downscaling x{scale:.2f} to avoid excessive processing time."
         )
         log.debug(
-            f"Downscale x{scale:.2f}: {orig_width}px -> {gray.shape[1]}px"
+            f"Downscale x{scale:.2f}: {orig_width}px -> {gray.shape[1]}px "
+            f"(before filters)"
         )
+    elif orig_width < config.OCR_UPSCALE_MIN_WIDTH:
+        post_scale = config.OCR_UPSCALE_MIN_WIDTH / orig_width
+        scale = post_scale
+        if post_scale < _DEFER_UPSCALE_FACTOR:
+            # Near target width: filtering at the target size is cheap and
+            # preserves the historical OCR input exactly.
+            gray = cv2.resize(
+                gray, None, fx=post_scale, fy=post_scale,
+                interpolation=cv2.INTER_CUBIC,
+            )
+            log.debug(
+                f"Upscale x{post_scale:.2f}: {orig_width}px -> {gray.shape[1]}px "
+                f"(before filters, below {config.OCR_UPSCALE_MIN_WIDTH}px)"
+            )
+            post_scale = 1.0
 
     gray = _remove_shadows(gray)
 
@@ -275,6 +390,16 @@ def _build_ocr_image(
     )
     enhanced = clahe.apply(denoised)
     enhanced = _sharpen(enhanced)
+
+    if post_scale != 1.0:
+        enhanced = cv2.resize(
+            enhanced, None, fx=post_scale, fy=post_scale,
+            interpolation=cv2.INTER_CUBIC,
+        )
+        log.debug(
+            f"Upscale x{post_scale:.2f}: {orig_width}px -> {enhanced.shape[1]}px "
+            f"(after filters, below {config.OCR_UPSCALE_MIN_WIDTH}px)"
+        )
 
     effective_dpi = max(72, int(dpi * scale))
 
