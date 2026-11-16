@@ -37,9 +37,13 @@ python -m benchmarks.bench_preprocess --repeats 2 --warmup 1 \
 python -m benchmarks.bench_pipeline --repeats 2 --warmup 1 --psm 3 \
   --output benchmarks/results/pipeline_baseline.json
 
-# Sequential batch baseline (no worker pool)
-python -m benchmarks.bench_batch --repeats 2 \
+# Sequential batch baseline (disable the default 2 batch workers)
+python -m benchmarks.bench_batch --repeats 2 --batch-workers 1 \
   --output benchmarks/results/batch_baseline.json
+
+# Bounded parallel batch baseline
+python -m benchmarks.bench_batch --repeats 2 --batch-workers 2 \
+  --output benchmarks/results/batch_parallel.json
 
 # Compare before/after
 python -m benchmarks.bench_compare \
@@ -49,11 +53,13 @@ python -m benchmarks.bench_compare \
 
 Useful flags:
 
-- `--images a4_clean,receipt` — subset
-- `--scale 0.25` — small corpus for a quick smoke run
-- `--orientation none` — preprocessing without OSD/deskew
-- `--cv2-threads 1` — emulate per-worker OpenCV settings
-- `--no-psm-parallel` — sequential PSM + early exit
+- `--images a4_clean,receipt` - subset
+- `--batch-workers N` - non-merge batch worker count (`1` = sequential)
+- `--ocr-max-concurrency N` - process-wide Tesseract pass ceiling
+- `--scale 0.25` - small corpus for a quick smoke run
+- `--orientation none` - preprocessing without OSD/deskew
+- `--cv2-threads 1` - emulate per-worker OpenCV settings
+- `--no-psm-parallel` - sequential PSM + early exit
 
 ## What is measured
 

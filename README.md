@@ -45,7 +45,8 @@ each other to pick the most confident result.
 | **Two interfaces, one engine** | `scanlayer` CLI and `import scanlayer` call the exact same pipeline |
 | **Five output formats** | Searchable `pdf`, or raw `txt` / `json` / `tsv` / `hocr` |
 | **Real column detection** | Two-column articles/letters read in correct order, not interleaved |
-| **Batch, merge, native PDF input** | Convert a folder in one call, merge pages into one PDF, or `--dry-run` a batch before spending time on OCR |
+| **Batch, merge, native PDF input** | Convert a folder with bounded batch workers, merge pages into one PDF, or `--dry-run` a batch before spending time on OCR |
+| **Incremental PDF pages** | Normal batch PDFs are rasterized page-by-page, keeping memory bounded by active workers |
 | **One configuration surface** | `configure()`, a JSON/YAML profile, or CLI flags, documented precedence |
 | **Debug overlay** | `--debug-image` draws every word, color-coded by confidence |
 
@@ -124,8 +125,11 @@ the complete details of each.
 A few more common cases:
 
 ```bash
-# Batch-convert a folder
-scanlayer *.jpg -o ./converted/
+# Batch-convert a folder with bounded parallelism (default: 2 workers)
+scanlayer *.jpg -o ./converted/ --batch-workers 2
+
+# Original sequential batch behavior
+scanlayer *.jpg -o ./converted/ --batch-workers 1
 
 # Merge several photographed pages into one searchable PDF
 scanlayer page1.jpg page2.jpg page3.jpg -o report.pdf --merge
@@ -144,8 +148,9 @@ scanlayer *.jpg -o ./converted/ --dry-run
 ```python
 import scanlayer
 
-# Batch
-result = scanlayer.convert_batch(["*.jpg"], "./converted/")
+# Batch with bounded parallelism (default: 2 workers)
+batch = scanlayer.convert_batch(["*.jpg"], "./converted/", batch_workers=2)
+print(batch.succeeded, batch.failed)
 
 # Merge
 scanlayer.convert_merge(["page1.jpg", "page2.jpg", "page3.jpg"], "report.pdf")
@@ -153,6 +158,13 @@ scanlayer.convert_merge(["page1.jpg", "page2.jpg", "page3.jpg"], "report.pdf")
 # Raw export
 scanlayer.convert("invoice.jpg", "invoice.json", output_format="json")
 ```
+
+`--workers` remains the merge-page worker option; use `--batch-workers` (or
+`batch_workers=`) for normal non-merge batch conversion. The default batch
+worker count is 2 and can be changed with `scanlayer.configure(batch_workers=...)`.
+Normal batch PDFs are enumerated first and rasterized incrementally, so peak
+memory is bounded by the active workers rather than total page count. Merge
+still builds its full page set before writing the combined PDF.
 
 ## Repository layout
 
@@ -171,6 +183,7 @@ scanlayer.convert("invoice.jpg", "invoice.json", output_format="json")
 │   ├── layout/
 │   ├── pdf/
 │   └── utils/
+├── benchmarks/        # opt-in corpus and reproducible performance harness
 ├── tests/             # pytest suite
 ├── pyproject.toml
 ├── requirements.txt
@@ -180,13 +193,32 @@ scanlayer.convert("invoice.jpg", "invoice.json", output_format="json")
 └── LICENSE.md
 ```
 
+## Development benchmarks
+
+The reproducible benchmark harness is under `benchmarks/` and is not part of
+the default pytest run:
+
+```bash
+pip install -e ".[test,bench]"
+python -m benchmarks.bench_batch --repeats 2 --batch-workers 2
+python -m benchmarks.bench_pipeline --repeats 2 --warmup 1
+```
+
+See `benchmarks/README.md` for the synthetic corpus, stage benchmarks, and
+caveats.
+
 ## Contributing
 
 Bug reports, fixes, and feature discussions are welcome: see
 [CONTRIBUTING.md](CONTRIBUTING.md) for how to set up a development
-environment and what to include in a pull request. There is a `tests/`
-directory (now including `utils/validators.py` and the `--dry-run` flag, with
-cross-platform coverage for Tesseract discovery on Windows/macOS/Linux) and it runs with `pytest` automatically in CI on every push and pull request; see [Roadmap & Limitations](https://Hyacinthe-primus.github.io/scanlayer/roadmap.html) and the [Adding tests](CONTRIBUTING.md#adding-tests) section of the contributing guide for where coverage is thinnest.
+environment and what to include in a pull request. The `tests/` directory
+covers validators and the `--dry-run` flag, with cross-platform coverage for
+Tesseract discovery on Windows/macOS/Linux; the opt-in `benchmarks/` suite
+covers stage timings and batch throughput. Tests run with `pytest`
+automatically in CI on every push and pull request; see
+[Roadmap & Limitations](https://Hyacinthe-primus.github.io/scanlayer/roadmap.html)
+and the [Adding tests](CONTRIBUTING.md#adding-tests) section of the
+contributing guide for where coverage is thinnest.
 
 ## Support the project
 
