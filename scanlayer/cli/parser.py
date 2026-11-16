@@ -86,6 +86,14 @@ def _build_parser() -> argparse.ArgumentParser:
              "Equivalent to configure(merge_workers=N).",
     )
     io_group.add_argument(
+        "--batch-workers", type=int, default=None, metavar="N",
+        help="Non-merge batches: process up to N files concurrently "
+             f"(default {config.BATCH_WORKERS}; 1 = sequential). Capped by "
+             "input count and CPU count. The global OCR budget still limits "
+             "simultaneous Tesseract passes. Ignored with --merge. "
+             "Equivalent to configure(batch_workers=N).",
+    )
+    io_group.add_argument(
         "--config", default=None,
         help="Path to a .yaml/.yml/.json config profile applied via "
              "configure() before any other option (CLI flags still "

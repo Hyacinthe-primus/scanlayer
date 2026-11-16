@@ -8,7 +8,7 @@ import argparse
 import os
 from typing import Optional
 
-from scanlayer.main import _default_output_path
+from scanlayer.main import _resolve_output_target
 from scanlayer.utils.errors import BlankPageDetectedError, PipelineError
 from scanlayer.utils.logger import log_error
 from scanlayer.utils.validators import (
@@ -47,21 +47,11 @@ def _exit_code_for(exc: Exception) -> int:
 def _dry_run_resolve_output_path(
     output_arg: str, input_path: str, is_batch: bool, output_format: str = "pdf"
 ) -> "tuple[str, Optional[str]]":
-    """Like _resolve_output_path(), but never touches the filesystem.
+    """Pure output-path resolution used by dry-run.
 
-    _resolve_output_path() calls os.makedirs() as a side effect for
-    folder-style -o, which --dry-run must not do. Returns
-    (resolved_output_path, folder_or_None) – folder is set when this
-    is the auto-created-folder case, so the caller can validate it
-    without creating it.
+    Returns (resolved_output_path, folder_or_None). No directory is created.
     """
-    if output_arg is None:
-        return _default_output_path(input_path, output_format), None
-    is_folder = is_batch or output_arg.endswith(("/", "\\")) or os.path.isdir(output_arg)
-    if is_folder:
-        stem = os.path.splitext(os.path.basename(input_path))[0]
-        return os.path.join(output_arg, f"{stem}.{output_format}"), output_arg
-    return output_arg, None
+    return _resolve_output_target(output_arg, input_path, is_batch, output_format)
 
 
 def _nearest_existing_dir(path: str) -> str:
@@ -96,45 +86,35 @@ def _check_output_folder_creatable(folder: str) -> None:
         raise OutputPathError(f"Output directory is not writable: {target}")
 
 
-def _dry_run_validate_one(
-    input_path: str, output_path: str, folder: "Optional[str]", output_format: str
-) -> None:
-    """Same checks as validate_all(), fastest first, but uses the
-    dry-run folder check instead of validate_output_path() when the
-    output path is an auto-created batch folder that may not exist
-    yet (validate_output_path() would otherwise reject it for a
-    reason a real run would just fix by creating the folder).
-    """
-    input_abs = validate_input_file(input_path)
-    validate_tesseract_environment()
-    if folder is not None:
-        _check_output_folder_creatable(folder)
+def _dry_run_validate_job(job, output_format: str) -> None:
+    """Validate one planned job without writing anything."""
+    if job.page_number is not None:
+        input_abs = validate_input_file(job.source_path)
     else:
-        validate_output_path(output_path, expected_ext=f".{output_format}")
-    validate_image_readable(input_abs)
+        input_abs = validate_input_file(job.input_path)
+    validate_tesseract_environment()
+    if job.output_dir is not None:
+        _check_output_folder_creatable(job.output_dir)
+    else:
+        validate_output_path(job.output_path, expected_ext=f".{output_format}")
+    if job.page_number is None:
+        validate_image_readable(input_abs)
 
 
-def _run_dry_run(
-    expanded_inputs: list[str], args: argparse.Namespace, log
-) -> int:
-    """Validate a batch (files exist/readable, Tesseract reachable,
-    output paths writable) without running OCR or writing anything.
+def _run_dry_run(plan, args: argparse.Namespace, log) -> int:
+    """Validate a batch plan without OCR, rasterization, or output writes.
 
-    Non-merge: mirrors the exit-code behavior of the real conversion
-    loop in main() – a single input's failure returns that failure's
-    own exit code immediately, multi-input runs collect every
-    failure and return EXIT_PARTIAL_BATCH if any file failed.
-
-    --merge: mirrors convert_merge(), which combines all pages into
-    ONE output and aborts on the first bad page rather than
-    collecting per-file failures, so dry-run does the same (fail
-    fast on the first bad page, no EXIT_PARTIAL_BATCH here).
+    Non-merge: per-file failures are collected; a single job returns its own
+    exit code, multiple jobs return EXIT_PARTIAL_BATCH.
+    --merge: fail fast on the first bad input, matching convert_merge().
     """
-    is_batch = len(expanded_inputs) > 1
+    total = len(plan.jobs) + len(plan.failures)
 
     if args.merge:
-        # main() already rejects args.merge with args.output is None
-        # before _run_dry_run is reached.
+        if plan.failures:
+            path, exc = plan.failures[0]
+            log_error(log, f"'{path}': {exc}")
+            return _exit_code_for(exc)
         try:
             validate_output_path(args.output, expected_ext=".pdf")
         except ValidationError as exc:
@@ -146,46 +126,52 @@ def _run_dry_run(
             log_error(log, f"'--merge': {exc}")
             return _exit_code_for(exc)
 
-        for input_path in expanded_inputs:
+        for job in plan.jobs:
             try:
-                input_abs = validate_input_file(input_path)
-                validate_image_readable(input_abs)
+                if job.page_number is not None:
+                    validate_input_file(job.source_path)
+                else:
+                    input_abs = validate_input_file(job.input_path)
+                    validate_image_readable(input_abs)
             except ValidationError as exc:
-                log_error(log, f"'{input_path}': {exc}")
+                log_error(log, f"'{job.source_path}': {exc}")
                 return _exit_code_for(exc)
 
         log.info(
-            f"dry-run: {len(expanded_inputs)} file(s) OK for --merge "
+            f"dry-run: {len(plan.jobs)} page/file(s) OK for --merge "
             f"into {args.output}, no output written."
         )
         return EXIT_OK
 
-    failures: list[tuple[str, str]] = []
+    failures = 0
     last_exit_code = EXIT_OK
+    for path, exc in plan.failures:
+        code = _exit_code_for(exc)
+        log_error(log, f"'{path}': {exc}")
+        failures += 1
+        last_exit_code = code
+        if total <= 1:
+            return last_exit_code
 
-    for input_path in expanded_inputs:
-        output_path, folder = _dry_run_resolve_output_path(
-            args.output, input_path, is_batch, args.format
-        )
+    for job in plan.jobs:
         try:
-            _dry_run_validate_one(input_path, output_path, folder, args.format)
+            _dry_run_validate_job(job, args.format)
         except Exception as exc:
             code = _exit_code_for(exc)
-            log_error(log, f"'{input_path}': {exc}")
-            failures.append((input_path, str(exc)))
+            log_error(log, f"'{job.source_path}': {exc}")
+            failures += 1
             last_exit_code = code
-            if not is_batch:
+            if total <= 1:
                 return last_exit_code
 
     if failures:
-        if is_batch:
+        if total > 1:
             log_error(
                 log,
-                f"dry-run: {len(failures)}/{len(expanded_inputs)} "
-                f"file(s) failed validation.",
+                f"dry-run: {failures}/{total} file(s) failed validation.",
             )
             return EXIT_PARTIAL_BATCH
         return last_exit_code
 
-    log.info(f"dry-run: {len(expanded_inputs)} file(s) OK, no output written.")
+    log.info(f"dry-run: {total} file(s) OK, no output written.")
     return EXIT_OK

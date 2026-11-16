@@ -179,6 +179,7 @@ def test_concurrent_pages_share_one_slot_pool_sized_to_the_cpu_count(merge_env):
     run(fake, 5, workers=3)
     slots = fake.slots[0]
     assert slots is not None and all(s is slots for s in fake.slots)
+    assert slots is engine.get_ocr_slots()
     free = sum(1 for _ in range(20) if slots.acquire(blocking=False))
     assert free == 8
 

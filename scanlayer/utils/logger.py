@@ -66,6 +66,34 @@ def set_log_level(level: str) -> None:
 
 
 @contextmanager
+def temporary_log_level(level: str) -> Generator[None, None, None]:
+    """Temporarily set scanlayer's log level and restore it on exit.
+
+    This does not touch handlers or the root logger. It restores the exact
+    previous level of every logger that existed before the block; loggers
+    created inside the block fall back to the restored config level.
+    """
+    level_value = getattr(logging, str(level).upper(), None)
+    if level_value is None:
+        raise ValueError(f"Unknown log level: {level!r}")
+
+    previous_levels = {logger: logger.level for logger in _known_loggers}
+    previous_config = getattr(config, "LOG_LEVEL", None)
+    config.LOG_LEVEL = str(level).upper()
+    for logger in _known_loggers:
+        logger.setLevel(level_value)
+    try:
+        yield
+    finally:
+        for logger, previous in previous_levels.items():
+            logger.setLevel(previous)
+        config.LOG_LEVEL = previous_config
+        for logger in _known_loggers:
+            if logger not in previous_levels:
+                logger.setLevel(_resolve_level())
+
+
+@contextmanager
 def stage_timer(logger: logging.Logger, stage_name: str) -> Generator[None, None, None]:
     """Context manager that logs the duration of a block.
 

@@ -5,7 +5,6 @@ and the main conversion loop. Maps exceptions to exit codes.
 
 from __future__ import annotations
 
-import glob
 import os
 import sys
 import tempfile
@@ -20,7 +19,12 @@ from scanlayer.cli.dry_run import (
     _run_dry_run,
 )
 from scanlayer.cli.parser import _build_parser
-from scanlayer.main import _expand_pdf_input, _resolve_output_path, convert, convert_merge
+from scanlayer.main import (
+    BatchOptions,
+    convert_batch,
+    convert_merge,
+    plan_batch,
+)
 from scanlayer.utils.logger import get_logger, log_error, log_warning
 
 
@@ -118,32 +122,70 @@ def main(argv: list[str] = None) -> int:
             return EXIT_USER_ERROR
         if not args.merge:
             log_warning(log, "--workers only applies with --merge, ignoring it.")
+    if args.batch_workers is not None:
+        if args.batch_workers < 1:
+            log_error(
+                log,
+                f"--batch-workers must be 1 or more. Got {args.batch_workers}.",
+            )
+            return EXIT_USER_ERROR
+        if args.merge:
+            log_warning(
+                log,
+                "--batch-workers only applies without --merge, ignoring it.",
+            )
 
-    raw_inputs: list[str] = []
-    for pat in args.input:
-        expanded = glob.glob(pat)
-        if expanded:
-            raw_inputs.extend(expanded)
-        else:
-            raw_inputs.append(pat)
+    options = BatchOptions(
+        lang=args.lang,
+        dpi=args.dpi,
+        jpeg_quality=args.jpeg_quality,
+        char_whitelist=args.whitelist,
+        char_blacklist=args.blacklist,
+        pdf_metadata=pdf_metadata,
+        force=args.force,
+        orientation=orientation_value,
+        output_format=args.format,
+        debug_image=args.debug_image,
+        merge=args.merge,
+        workers=args.workers,
+        batch_workers=args.batch_workers,
+    )
 
-    with tempfile.TemporaryDirectory(prefix="scanlayer_pdf_") as tmp_dir:
+    if args.dry_run:
         try:
-            expanded_inputs: list[str] = []
-            for input_path in raw_inputs:
-                expanded_inputs.extend(_expand_pdf_input(input_path, args.dpi, tmp_dir))
+            plan = plan_batch(
+                args.input, args.output, options,
+                tmp_dir=None, dry_run=True,
+            )
         except Exception as exc:
             code = _exit_code_for(exc)
-            log_error(log, f"PDF input expansion failed: {exc}")
+            log_error(log, f"dry-run: {exc}")
             return code
+        return _run_dry_run(plan, args, log)
 
-        if args.dry_run:
-            return _run_dry_run(expanded_inputs, args, log)
+    if args.merge:
+        with tempfile.TemporaryDirectory(prefix="scanlayer_pdf_") as tmp_dir:
+            try:
+                plan = plan_batch(
+                    args.input, args.output, options,
+                    tmp_dir=tmp_dir, dry_run=False,
+                )
+            except Exception as exc:
+                code = _exit_code_for(exc)
+                log_error(log, f"--merge: {exc}")
+                return code
+            if plan.failures:
+                _path, exc = plan.failures[0]
+                code = _exit_code_for(exc)
+                log_error(log, f"--merge: {exc}")
+                return code
+            if not plan.jobs:
+                log_error(log, "--merge: no input files to process.")
+                return EXIT_USER_ERROR
 
-        if args.merge:
             try:
                 convert_merge(
-                    input_paths=expanded_inputs,
+                    input_paths=[job.input_path for job in plan.jobs],
                     output_path=args.output,
                     lang=args.lang,
                     dpi=args.dpi,
@@ -166,58 +208,56 @@ def main(argv: list[str] = None) -> int:
                     log_error(log, f"--merge: {exc}")
                 return code
 
-        is_batch = len(expanded_inputs) > 1
-        failures: list[tuple[str, str]] = []
-        last_exit_code = EXIT_OK
+    try:
+        batch = convert_batch(
+            args.input,
+            args.output,
+            merge=False,
+            lang=args.lang,
+            dpi=args.dpi,
+            jpeg_quality=args.jpeg_quality,
+            char_whitelist=args.whitelist,
+            char_blacklist=args.blacklist,
+            pdf_metadata=pdf_metadata,
+            force=args.force,
+            orientation=orientation_value,
+            output_format=args.format,
+            debug_image=args.debug_image,
+            workers=args.workers,
+            batch_workers=args.batch_workers,
+        )
+    except Exception as exc:
+        code = _exit_code_for(exc)
+        if code == EXIT_UNEXPECTED_ERROR:
+            import traceback
+            log_error(log, f"batch: unexpected error: {type(exc).__name__}: {exc}")
+            log.debug(traceback.format_exc())
+        else:
+            log_error(log, f"batch: {exc}")
+        return code
 
-        for input_path in expanded_inputs:
-            try:
-                output_path = _resolve_output_path(
-                    args.output, input_path, is_batch, args.format
+    if batch.failures:
+        first_code = EXIT_UNEXPECTED_ERROR
+        for index, (path, exc) in enumerate(batch.failure_exceptions):
+            code = _exit_code_for(exc)
+            if index == 0:
+                first_code = code
+            if code == EXIT_UNEXPECTED_ERROR:
+                import traceback
+                log_error(
+                    log,
+                    f"'{path}': unexpected error: {type(exc).__name__}: {exc}",
                 )
-            except OSError as exc:
-                log_error(log, f"'{input_path}': cannot prepare output path: {exc}")
-                failures.append((input_path, str(exc)))
-                last_exit_code = EXIT_USER_ERROR
-                if not is_batch:
-                    return last_exit_code
-                continue
+                log.debug("".join(traceback.format_exception(exc)))
+            else:
+                log_error(log, f"'{path}': {exc}")
+        total = len(batch.results) + len(batch.failures)
+        if total > 1:
+            log_error(log, f"{len(batch.failures)}/{total} file(s) failed.")
+            return EXIT_PARTIAL_BATCH
+        return first_code
 
-            try:
-                convert(
-                    input_path=input_path,
-                    output_path=output_path,
-                    lang=args.lang,
-                    dpi=args.dpi,
-                    jpeg_quality=args.jpeg_quality,
-                    char_whitelist=args.whitelist,
-                    char_blacklist=args.blacklist,
-                    pdf_metadata=pdf_metadata,
-                    force=args.force,
-                    orientation=orientation_value,
-                    output_format=args.format,
-                    debug_image=args.debug_image,
-                )
-            except Exception as exc:
-                code = _exit_code_for(exc)
-                if code == EXIT_UNEXPECTED_ERROR:
-                    import traceback
-                    log_error(log, f"'{input_path}': unexpected error: {type(exc).__name__}: {exc}")
-                    log.debug(traceback.format_exc())
-                else:
-                    log_error(log, f"'{input_path}': {exc}")
-                failures.append((input_path, str(exc)))
-                last_exit_code = code
-                if not is_batch:
-                    return last_exit_code
-
-        if failures:
-            if is_batch:
-                log_error(log, f"{len(failures)}/{len(expanded_inputs)} file(s) failed.")
-                return EXIT_PARTIAL_BATCH
-            return last_exit_code
-
-        return EXIT_OK
+    return EXIT_OK
 
 
 if __name__ == "__main__":
