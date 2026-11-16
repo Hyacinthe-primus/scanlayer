@@ -69,6 +69,7 @@
       <a class="btn btn-ghost" href="https://github.com/Hyacinthe-primus/scanlayer" target="_blank" rel="noopener">View on GitHub</a>
     </div>
     <div class="shield-row">
+      <span class="shield-pill">Release <strong>v1.2.0</strong></span>
       <span class="shield-pill">scanlayer <strong>PyPI</strong></span>
       <span class="shield-pill">License <strong>MIT</strong></span>
       <span class="shield-pill">Python <strong>3.9+</strong></span>
@@ -181,10 +182,19 @@ print(result.words_count, result.mean_confidence)</code></pre>
 <div class="card"><div class="feat-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M5.5 7.5l3 2.5-3 2.5M10.5 12.5h4"/></svg></div><h3>Two interfaces, one engine</h3><p>Every capability is available from the <code>scanlayer</code> command and from <code>import scanlayer</code>: the CLI is a thin wrapper over the exact same <code>convert()</code> pipeline.</p></div>
 <div class="card"><div class="feat-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h5l3 3v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1Z"/><path d="M11 2.5v3h3"/><path d="M7.5 12.3h5M7.5 15h3"/></svg></div><h3>Four export formats besides PDF</h3><p>Skip the PDF entirely and get <code>txt</code>, <code>json</code>, <code>tsv</code>, or <code>hocr</code> straight from the OCR pass with <code>--format</code>.</p></div>
 <div class="card"><div class="feat-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3" width="15" height="14" rx="1.5"/><path d="M8 3v14M13 3v14"/></svg></div><h3>Real multi-column reading order</h3><p>Two-column reports and letters are reconstructed geometrically, not read column-by-line the way raw Tesseract output is.</p></div>
-<div class="card"><div class="feat-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.3" cy="4.3" r="1.6"/><circle cx="5.3" cy="15.7" r="1.6"/><circle cx="14.7" cy="15.7" r="1.6"/><path d="M5.3 5.9v5.5a2.4 2.4 0 0 0 2.4 2.4h4.7M14.7 14.1V9"/></svg></div><h3>Batch, merge, and native PDF input</h3><p>Convert a folder of mixed images and PDFs in one call, or merge several pages into a single multi-page searchable PDF.</p></div>
+<div class="card"><div class="feat-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.3" cy="4.3" r="1.6"/><circle cx="5.3" cy="15.7" r="1.6"/><circle cx="14.7" cy="15.7" r="1.6"/><path d="M5.3 5.9v5.5a2.4 2.4 0 0 0 2.4 2.4h4.7M14.7 14.1V9"/></svg></div><h3>Batch, merge, and native PDF input</h3><p>Convert a folder of mixed images and PDFs with bounded batch workers, stream PDF pages so memory stays bounded, or merge several pages into one searchable PDF.</p></div>
 <div class="card"><div class="feat-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.8v2M10 15.2v2M17.2 10h-2M4.8 10h-2M15.1 4.9l-1.4 1.4M6.3 13.7l-1.4 1.4M15.1 15.1l-1.4-1.4M6.3 6.3 4.9 4.9"/></svg></div><h3>One configuration surface</h3><p><code>configure()</code>, a JSON/YAML profile, or CLI flags, using the same keys, documented precedence, unknown keys rejected loudly.</p></div>
 <div class="card"><div class="feat-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M16.3 16.3l-3.6-3.6"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/></svg></div><h3>A debug overlay for every run</h3><p><code>--debug-image</code> draws every detected word, color-coded by confidence, so a bad OCR result is diagnosable in seconds.</p></div>
 </div>
+</section>
+
+<section class="home-section">
+  <div class="section-head"><h2>New in 1.2.0</h2><a href="roadmap.html">Limits and caveats &rarr;</a></div>
+  <div class="grid cols-3">
+    <div class="card"><h3>Bounded batch parallelism</h3><p>Non-merge batches now convert files concurrently, 2 by default, with <code>--batch-workers</code> / <code>batch_workers=</code>. Results stay in input order; <code>1</code> restores the old sequential behavior.</p></div>
+    <div class="card"><h3>Streamed PDF input</h3><p>Normal batches enumerate a source PDF first and rasterize pages only as workers need them, so peak memory tracks the active workers instead of the document length.</p></div>
+    <div class="card"><h3>Faster internals, measured</h3><p>OCR input is encoded once, lossless PDF backgrounds skip a PNG re-encode, preprocessing does less full-resolution work, and the new <code>benchmarks/</code> harness makes the gains reproducible.</p></div>
+  </div>
 </section>
 
 <section class="home-section">
@@ -205,7 +215,7 @@ print(result.words_count, result.mean_confidence)</code></pre>
 <table>
 <thead><tr><th>Path</th><th>What's in it</th></tr></thead>
 <tbody>
-<tr><td><code>scanlayer/</code></td><td>The library + CLI source.</td></tr><tr><td><code>README.md</code></td><td>Install instructions and a five-minute quick start.</td></tr><tr><td><code>CONTRIBUTING.md</code></td><td>How to set up a dev environment and submit a change.</td></tr><tr><td><code>LICENSE.md</code></td><td>MIT.</td></tr>
+<tr><td><code>scanlayer/</code></td><td>The library + CLI source.</td></tr><tr><td><code>tests/</code></td><td>The pytest suite run in CI.</td></tr><tr><td><code>benchmarks/</code></td><td>Opt-in reproducible corpus and performance harness (not part of the default test run).</td></tr><tr><td><code>README.md</code></td><td>Install instructions and a five-minute quick start.</td></tr><tr><td><code>CONTRIBUTING.md</code></td><td>How to set up a dev environment and submit a change.</td></tr><tr><td><code>LICENSE.md</code></td><td>MIT.</td></tr>
 </tbody>
 </table>
 </div>

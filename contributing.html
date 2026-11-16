@@ -78,8 +78,12 @@ in the repository root; this page mirrors the essentials.</p>
 cd scanlayer
 python -m venv .venv
 source .venv/bin/activate   # .venv\Scripts\activate on Windows
-pip install -r requirements.txt   # from the repo root, next to scanlayer/
-pip install -e .</code></pre>
+
+# development + test tooling (pytest, pytest-cov, pypdf)
+pip install -e &quot;.[test]&quot;
+
+# optional: benchmark harness dependencies (psutil, pypdf)
+pip install -e &quot;.[test,bench]&quot;</code></pre>
 </div>
 <p>You will also need Tesseract OCR (and poppler, for PDF-input work), see
 <a href="installation.html">Installation</a>.</p>
@@ -95,13 +99,37 @@ pip install -e .</code></pre>
 ├── config.py                   # all tunables, Tesseract/poppler discovery
 ├── cli/                        # argparse CLI: parser.py, run.py, dry_run.py
 ├── preprocessing/enhance.py      # EXIF/OSD/deskew, illumination, denoise, CLAHE, sharpen
-├── ocr/engine.py                 # PSM candidate racing, Tesseract invocation
+├── ocr/engine.py                 # PSM candidate racing, Tesseract invocation, OCR ceiling
 ├── ocr/export.py                 # txt/json/tsv/hocr exporters
 ├── layout/columns.py              # multi-column reading-order reconstruction
 ├── pdf/builder.py                  # searchable PDF construction (single + multi-page)
 ├── pdf/fonts.py                     # automatic font selection
-└── utils/                            # validators, exceptions, logging, debug-image overlay</code></pre>
+└── utils/                            # validators, exceptions, logging, resources, debug-image
+</code></pre>
 </div>
+<p>The repository root also contains <code>benchmarks/</code> (opt-in harness) and
+<code>tests/</code> (pytest suite), neither of which is part of the installed package.</p>
+
+<h2 id="benchmarks">Benchmarks</h2>
+<p>The <code>benchmarks/</code> directory is a separate, opt-in harness. It is not part of
+the default pytest run: it generates a deterministic synthetic corpus and reports stage
+timings, end-to-end timings, and batch throughput.</p>
+<div class="code-block">
+  <div class="code-head"><span class="lang-tag">bash</span>
+    <button class="copy-btn" type="button">copy</button>
+  </div>
+  <pre><code class="language-bash">pip install -e &quot;.[test,bench]&quot;
+
+# batch throughput: sequential vs bounded parallel
+python -m benchmarks.bench_batch --repeats 2 --batch-workers 1
+python -m benchmarks.bench_batch --repeats 2 --batch-workers 2
+
+# full pipeline on the synthetic corpus
+python -m benchmarks.bench_pipeline --repeats 2 --warmup 1 --psm 3</code></pre>
+</div>
+<p>See <code>benchmarks/README.md</code> in the repository for the corpus, every flag, and
+the caveats (thermal variance, synthetic pages, and why the PDF streaming path trades
+startup cost for memory).</p>
 
 <h2 id="guidelines">Making a change</h2>
 <ol>
@@ -125,20 +153,24 @@ reachable both ways, with matching parameter names (<code>--lang</code> &harr; <
 </ol>
 
 <h2 id="tests">Adding tests</h2>
-<p>A <code>tests/</code> directory already exists, covering <code>config.py</code>,
-<code>ocr/export.py</code>, <code>layout/columns.py</code>, <code>pdf/fonts.py</code>,
-<code>pdf/builder.py</code>, and an end-to-end <code>convert()</code> test (skipped
-automatically without a real Tesseract install). Run it with <code>pytest</code> after
-installing <code>requirements.txt</code> (which includes <code>pytest</code>). Coverage gaps worth closing next, in priority order:</p>
+<p>The <code>tests/</code> directory covers <code>config.py</code>, <code>utils/validators.py</code>,
+<code>layout/columns.py</code>, <code>ocr/export.py</code>, <code>pdf/fonts.py</code>,
+<code>pdf/builder.py</code>, the <code>--dry-run</code> flag, batch planning and parallel
+execution, incremental PDF streaming, resource guards, and an end-to-end <code>convert()</code>
+test (skipped automatically without a real Tesseract install). Run it with <code>pytest</code>
+after <code>pip install -e ".[test]"</code>; CI also uploads coverage to Codecov. Coverage
+gaps worth closing next, in priority order:</p>
 <ol>
-<li><code>utils/validators.py</code>: pure functions, no Tesseract required, and not yet
-exercised directly (only indirectly, through the integration test).</li>
-<li><code>preprocessing/enhance.py</code>: EXIF/OSD/deskew, illumination, denoise; needs
-fixture images with known rotation/lighting defects.</li>
-<li><code>ocr/engine.py</code>: the PSM-candidate racing logic, with a real or mocked
-Tesseract invocation.</li>
-<li>More end-to-end cases: a genuine multi-column sample, a rotated sample, a blank-page
-sample, asserting on word-count/confidence ranges rather than exact OCR text.</li>
+<li>End-to-end cases with real Tesseract on a genuine multi-column sample, a rotated sample,
+and a blank-page sample, asserting on word-count/confidence ranges rather than exact OCR text
+(which shifts across Tesseract versions).</li>
+<li>Merge failure paths, especially a page failing after earlier pages have already completed,
+and the interaction between merge workers and the global OCR ceiling.</li>
+<li>Concurrency isolation: independent <code>convert_batch()</code> calls in one process are a
+documented limitation, so a test that pins the intended single-batch contract (and the
+documented failure mode) would prevent silent regressions.</li>
+<li>Platform coverage: Tesseract discovery is unit-tested with mocked paths; a CI job on macOS
+and Windows would exercise the real binaries end to end.</li>
 </ol>
 
 <h2 id="submitting">Submitting</h2>
@@ -154,7 +186,7 @@ sample, asserting on word-count/confidence ranges rather than exact OCR text.</l
   </div>
   <aside class="toc" aria-label="On this page">
   <div class="toc-label">On this page</div>
-  <a href="#setup">Development setup</a><a href="#layout">Project layout</a><a href="#guidelines">Making a change</a><a href="#tests">Adding tests</a><a href="#submitting">Submitting</a>
+  <a href="#setup">Development setup</a><a href="#layout">Project layout</a><a href="#benchmarks">Benchmarks</a><a href="#guidelines">Making a change</a><a href="#tests">Adding tests</a><a href="#submitting">Submitting</a>
 </aside>
 </div>
   </main>

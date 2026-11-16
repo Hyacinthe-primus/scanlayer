@@ -87,7 +87,7 @@ launch in <code>ocr/engine.py</code>.</li>
 <h2 id="no-tests">Tests exist, and CI runs them on every PR</h2>
 <div class="callout ok">
   <span class="callout-title">Tests, linting, and publishing are all automated</span>
-  A <code>tests/</code> directory covers <code>config.py</code> (including platform-specific Tesseract discovery), <code>utils/validators.py</code>, <code>layout/columns.py</code>, <code>ocr/export.py</code>, <code>pdf/fonts.py</code>, <code>pdf/builder.py</code>, the <code>--dry-run</code> flag, and an end-to-end integration test in <code>main.py</code> (the last one needs a real Tesseract install and skips automatically when one isn't found). Run it with <code>pytest</code> after <code>pip install -r requirements.txt</code> (which includes <code>pytest</code>). In CI, the test suite (with Tesseract, including English and French traineddata, plus poppler installed) and <code>ruff</code> run automatically on every push and every pull request, and each release is built and published to PyPI automatically when its version tag is pushed. Before relying on new Tesseract versions or platforms, check <a href="contributing.html">Contributing</a> for where coverage is thinnest.
+  A <code>tests/</code> directory covers <code>config.py</code> (including platform-specific Tesseract discovery), <code>utils/validators.py</code>, <code>layout/columns.py</code>, <code>ocr/export.py</code>, <code>pdf/fonts.py</code>, <code>pdf/builder.py</code>, the <code>--dry-run</code> flag, batch planning and parallel execution, incremental PDF streaming, resource guards, and an end-to-end integration test in <code>main.py</code> (the last one needs a real Tesseract install and skips automatically when one isn't found). Run it with <code>pytest</code> after <code>pip install -e ".[test]"</code>. In CI, the test suite (with Tesseract, including English and French traineddata, plus poppler installed) and <code>ruff</code> run automatically on every push and every pull request, and each release is built and published to PyPI automatically when its version tag is pushed. Coverage gaps are tracked in <a href="contributing.html#tests">Contributing</a>.
 </div>
 
 <h2 id="scope">Deliberate scope boundaries</h2>
@@ -105,9 +105,26 @@ a surprising result is not mistaken for a defect.</p>
 <h2 id="other">Other things to know before relying on this</h2>
 <ul>
 <li>No async API: <code>convert()</code>/<code>convert_batch()</code>/<code>convert_merge()</code>
-are synchronous and blocking. Parallelism only exists internally: across PSM candidates
-within a single file's OCR pass, and across pages (up to 4 at once) within a
-<code>--merge</code> run. Separate files in a plain batch are still processed one at a time.</li>
+are synchronous and blocking. Parallelism is internal and bounded: across PSM candidates
+within a single file's OCR pass, across files in a non-merge batch (2 by default,
+<code>--batch-workers</code>), and across pages of a <code>--merge</code> run (up to 4,
+<code>--workers</code>). All of it shares one process-wide Tesseract ceiling
+(<code>ocr_max_concurrency</code>).</li>
+<li>Merge is all-page: every processed page stays in memory until the combined PDF is
+written, so merge memory scales with page count even though OCR runs in parallel.
+A non-merge PDF batch streams pages by chunk and does not have that growth.</li>
+<li>Incremental PDF rasterization trades startup cost for memory. Poppler is invoked once
+per page chunk, so a batch of many very small PDF pages can be slower than the previous
+all-pages-at-once path. The A4 memory reduction is the reason for the trade; benchmark your
+own corpus before assuming a speedup.</li>
+<li>Two independent <code>convert_batch()</code> calls running concurrently in the same
+process are not isolated: OpenCV's thread count and the log level are process-global, and
+one call can restore a value that belonged to the other. Run one batch at a time per
+process, or use separate processes.</li>
+<li>CLI <code>--quiet</code>/<code>--verbose</code> set the default level for loggers created
+afterward; logger objects created at import time can keep their original level. The library
+form, <code>convert_batch(quiet=True)</code> / <code>verbose=True</code>, applies and restores
+the level for scanlayer's known loggers.</li>
 <li>No built-in retry/backoff for a failed Tesseract invocation within a batch; a per-file
 failure is recorded and the batch moves on, but that one file is not automatically retried.</li>
 <li>No streaming API for very large batches; <code>convert_batch()</code> returns one
