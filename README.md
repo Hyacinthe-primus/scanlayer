@@ -8,6 +8,8 @@
 export the raw OCR result as plain text, JSON, TSV, or hOCR. Use it as a
 command-line tool or as a Python library; both are the same engine underneath.
 
+<div align="center">
+
 [![PyPI version](https://img.shields.io/badge/pypi-v1.2.1-blue?style=for-the-badge)](https://badge.fury.io/py/scanlayer)
 [![codecov](https://img.shields.io/codecov/c/github/Hyacinthe-primus/scanlayer?style=for-the-badge)](https://codecov.io/gh/Hyacinthe-primus/scanlayer)
 [![Python](https://img.shields.io/badge/python-3.9%2B-3776AB?style=for-the-badge)](#)
@@ -15,6 +17,8 @@ command-line tool or as a Python library; both are the same engine underneath.
 [![](https://img.shields.io/badge/docs-documentation-green?style=for-the-badge)](https://Hyacinthe-primus.github.io/scanlayer/)
 [![GitHub last commit](https://img.shields.io/github/last-commit/Hyacinthe-primus/scanlayer?style=for-the-badge)](https://github.com/Hyacinthe-primus/scanlayer)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE.md)
+
+</div>
 
 ---
 
