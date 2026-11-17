@@ -25,7 +25,23 @@ from scanlayer.main import (
     convert_merge,
     plan_batch,
 )
-from scanlayer.utils.logger import get_logger, log_error, log_warning
+from scanlayer.utils.logger import get_logger, log_error, log_warning, set_log_level
+
+
+def _configure_logging(verbose: bool, quiet: bool) -> None:
+    """Apply CLI verbosity to loggers that already exist.
+
+    Module-level loggers are created at import time, before argv is parsed,
+    so setting the LOG_LEVEL environment variable alone does not change them.
+    """
+    if verbose:
+        level = "DEBUG"
+    elif quiet:
+        level = "ERROR"
+    else:
+        return
+    os.environ["LOG_LEVEL"] = level
+    set_log_level(level)
 
 
 def main(argv: list[str] = None) -> int:
@@ -33,10 +49,7 @@ def main(argv: list[str] = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    if args.verbose:
-        os.environ["LOG_LEVEL"] = "DEBUG"
-    elif args.quiet:
-        os.environ["LOG_LEVEL"] = "ERROR"
+    _configure_logging(args.verbose, args.quiet)
 
     log = get_logger("main")
 
