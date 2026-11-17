@@ -95,7 +95,7 @@ library source directly: if it is not listed here, it is not implemented (see
 <li>One optional process-wide ceiling on simultaneous Tesseract passes (<code>ocr_max_concurrency</code>), shared by batch conversion and merge page workers, so parallelism cannot silently multiply.</li>
 <li>Per-pass timeout, so a hung Tesseract process cannot hang the whole pipeline, plus a separate orientation/script detection timeout.</li>
 <li>Configurable Tesseract engine mode (legacy, LSTM, or both).</li>
-<li>Character whitelisting and blacklisting for constrained fields (pure numeric codes, for example).</li>
+<li>Character whitelisting and blacklisting for constrained fields (pure numeric codes, for example), with filter-aware confidence handling: punctuation excluded by a whitelist or punctuation-only blacklist no longer deletes the whole word.</li>
 <li>Multi-language OCR (<code>--lang fra+eng</code>, or any Tesseract language combination).</li>
 <li>Non-printable / control-character filtering on recognized words.</li>
 <li>Per-word confidence scores retained through the whole pipeline, used for the confidence threshold, the debug overlay, and the JSON/TSV export.</li></ul>

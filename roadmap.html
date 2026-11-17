@@ -121,10 +121,6 @@ own corpus before assuming a speedup.</li>
 process are not isolated: OpenCV's thread count and the log level are process-global, and
 one call can restore a value that belonged to the other. Run one batch at a time per
 process, or use separate processes.</li>
-<li>CLI <code>--quiet</code>/<code>--verbose</code> set the default level for loggers created
-afterward; logger objects created at import time can keep their original level. The library
-form, <code>convert_batch(quiet=True)</code> / <code>verbose=True</code>, applies and restores
-the level for scanlayer's known loggers.</li>
 <li>No built-in retry/backoff for a failed Tesseract invocation within a batch; a per-file
 failure is recorded and the batch moves on, but that one file is not automatically retried.</li>
 <li>No streaming API for very large batches; <code>convert_batch()</code> returns one

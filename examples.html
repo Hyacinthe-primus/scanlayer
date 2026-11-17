@@ -283,6 +283,13 @@ scanlayer.configure(psm_candidates=[7])  # 7 = single text line</code></pre>
 </div>
   </div>
 </div>
+<div class="callout tip">
+  <span class="callout-title">Include a space to keep words separated</span>
+  A whitelist is applied character by character. Add a space to the value when words should
+  stay separate; punctuation excluded this way is left out of the word rather than deleting
+  it. For cleanup, a punctuation-only blacklist also keeps the affected words, while an
+  alphanumeric blacklist can drop whole words because Tesseract reports confidence 0.
+</div>
 
 <h2 id="debug">Debug overlay for a run that looks wrong</h2>
 <div class="tabs" id="tabs-7">
