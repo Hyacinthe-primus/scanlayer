@@ -145,11 +145,16 @@ def _build_parser() -> argparse.ArgumentParser:
     ocr_group.add_argument(
         "--whitelist", default=None,
         help="Allowed characters for OCR, e.g. "
-             "'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'",
+             "'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'. Include a "
+             "space to preserve word boundaries; punctuation excluded "
+             "this way is left out of the word, not used to drop it.",
     )
     ocr_group.add_argument(
         "--blacklist", default=None,
-        help="Forbidden characters for OCR, e.g. '|`~'",
+        help="Forbidden characters for OCR, e.g. '|`~'. A "
+             "punctuation-only blacklist keeps the affected word; an "
+             "alphanumeric blacklist can make Tesseract discard whole "
+             "words because their confidence drops to 0.",
     )
     ocr_group.add_argument(
         "--font", default=None,

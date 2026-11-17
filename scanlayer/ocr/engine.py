@@ -7,7 +7,10 @@ confidence. Supports early-exit and parallel execution via threads.
 
 from __future__ import annotations
 
+import csv
 import os
+import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -96,25 +99,108 @@ def _is_printable(text: str) -> bool:
     return True
 
 
-def _build_tess_config(
-    tess_base: str,
+def _tesseract_command(
+    ocr_path: str,
+    output_base: str,
+    lang: str,
     psm: int,
     effective_dpi: int,
     char_whitelist: Optional[str],
     char_blacklist: Optional[str],
-) -> str:
-    """Builds the Tesseract CLI argument string from the given options."""
-    parts: list[str] = []
-    if tess_base:
-        parts.append(tess_base)
-    parts.append(f"--psm {psm}")
-    parts.append(f"--oem {config.TESSERACT_OEM}")
-    parts.append(f"-c user_defined_dpi={effective_dpi}")
+) -> list[str]:
+    """Build the Tesseract argv list for one OCR pass.
+
+    Kept as a list rather than a shell-style config string: whitelist and
+    blacklist values can legitimately contain spaces (a space in a whitelist
+    preserves word boundaries). pytesseract splits its ``config=`` string with
+    ``shlex`` and silently drops a trailing space, which merges whole lines
+    into zero-confidence tokens.
+    """
+    cmd = [
+        config.TESSERACT_CMD,
+        ocr_path,
+        output_base,
+        "-l", lang,
+        "--psm", str(psm),
+        "--oem", str(config.TESSERACT_OEM),
+        "-c", f"user_defined_dpi={effective_dpi}",
+    ]
+    if config.TESSDATA_DIR:
+        cmd.extend(["--tessdata-dir", config.TESSDATA_DIR])
     if char_whitelist:
-        parts.append(f"-c tessedit_char_whitelist={char_whitelist}")
+        cmd.extend(["-c", f"tessedit_char_whitelist={char_whitelist}"])
     if char_blacklist:
-        parts.append(f"-c tessedit_char_blacklist={char_blacklist}")
-    return " ".join(parts)
+        cmd.extend(["-c", f"tessedit_char_blacklist={char_blacklist}"])
+    cmd.extend(["-c", "tessedit_create_tsv=1"])
+    return cmd
+
+
+def _subprocess_kwargs() -> dict:
+    """Match pytesseract's hidden-console behavior on Windows."""
+    if sys.platform != "win32":
+        return {}
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startupinfo.wShowWindow = subprocess.SW_HIDE
+    return {"startupinfo": startupinfo}
+
+
+def _run_tesseract_tsv(
+    ocr_path: str,
+    lang: str,
+    psm: int,
+    effective_dpi: int,
+    char_whitelist: Optional[str],
+    char_blacklist: Optional[str],
+) -> list[list[str]]:
+    """Run Tesseract once and return its TSV rows, header excluded."""
+    fd, output_base = tempfile.mkstemp(prefix="scanlayer_tsv_")
+    os.close(fd)
+    os.unlink(output_base)
+    tsv_path = output_base + ".tsv"
+    try:
+        cmd = _tesseract_command(
+            ocr_path, output_base, lang, psm, effective_dpi,
+            char_whitelist, char_blacklist,
+        )
+        try:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=config.OCR_TIMEOUT_SECONDS,
+                **_subprocess_kwargs(),
+            )
+        except FileNotFoundError as exc:
+            raise pytesseract.TesseractNotFoundError() from exc
+        except subprocess.TimeoutExpired as exc:
+            raise OCRProcessingError(
+                f"PSM {psm}: Tesseract timeout (> "
+                f"{config.OCR_TIMEOUT_SECONDS}s). Image likely too "
+                "large/noisy, or the Tesseract binary is stuck."
+            ) from exc
+
+        if proc.returncode != 0:
+            message = (proc.stderr or proc.stdout or "").strip()
+            raise pytesseract.TesseractError(proc.returncode, message)
+
+        if not os.path.exists(tsv_path):
+            raise OCRProcessingError(
+                f"PSM {psm}: Tesseract exited successfully but produced no "
+                "TSV output."
+            )
+
+        with open(
+            tsv_path, "r", encoding="utf-8", errors="replace", newline="",
+        ) as fh:
+            reader = csv.reader(fh, delimiter="\t", quoting=csv.QUOTE_NONE)
+            next(reader, None)  # header
+            return [row for row in reader if len(row) >= 12]
+    finally:
+        _remove_temp_file(tsv_path)
+        _remove_temp_file(output_base + ".txt")
 
 
 def tessdata_config() -> str:
@@ -127,10 +213,9 @@ def tessdata_config() -> str:
 def _write_ocr_image(ocr_image: np.ndarray) -> str:
     """Encode the OCR image once to a temp BMP and return its path.
 
-    pytesseract writes a fresh temp image for every ``image_to_data()`` call.
-    With several PSM candidates that re-encodes the same page repeatedly.
-    BMP is lossless and avoids PNG encoding/decoding overhead; the file is
-    deleted by the caller as soon as all passes finish.
+    Re-encoding the same page for every PSM candidate is wasteful. BMP is
+    lossless and avoids PNG encoding/decoding overhead; the file is deleted
+    by the caller as soon as all passes finish.
     """
     fd, path = tempfile.mkstemp(prefix="scanlayer_ocr_", suffix=".bmp")
     os.close(fd)
@@ -164,11 +249,34 @@ def _remove_temp_file(path: Optional[str]) -> None:
     )
 
 
+def _keep_zero_confidence_word(
+    raw_text: str,
+    char_whitelist: Optional[str],
+    char_blacklist: Optional[str],
+) -> bool:
+    """Decide whether a confidence-0 word is still trustworthy.
+
+    Tesseract reports confidence 0 for words it had to constrain because of
+    ``tessedit_char_whitelist``/``tessedit_char_blacklist``. For a whitelist,
+    the text is valid when every character is explicitly allowed. For a
+    blacklist made only of punctuation/symbols, Tesseract drops those
+    characters but leaves the rest of the word intact; for an alphanumeric
+    blacklist it may substitute other characters, so dropping is safer.
+    """
+    if char_whitelist:
+        return all(ch in char_whitelist for ch in raw_text)
+    if char_blacklist:
+        return (
+            all(not ch.isalnum() for ch in char_blacklist)
+            and not any(ch in raw_text for ch in char_blacklist)
+        )
+    return False
+
+
 def _run_ocr(
     ocr_image: "str | np.ndarray",
     lang: str,
     psm: int,
-    tess_base: str,
     effective_dpi: int,
     char_whitelist: Optional[str],
     char_blacklist: Optional[str],
@@ -176,34 +284,29 @@ def _run_ocr(
     """Run a single OCR pass with a given PSM. Raises on genuine failure.
 
     ``ocr_image`` is normally a pre-encoded file path; a NumPy array is still
-    accepted for internal compatibility, but then pytesseract re-encodes it.
+    accepted for internal compatibility, but then a temporary BMP is written.
     """
     t0 = time.perf_counter()
 
-    tess_config = _build_tess_config(
-        tess_base, psm, effective_dpi, char_whitelist, char_blacklist,
-    )
+    cleanup_path = None
+    if isinstance(ocr_image, np.ndarray):
+        ocr_path = _write_ocr_image(ocr_image)
+        cleanup_path = ocr_path
+    else:
+        ocr_path = ocr_image
 
     try:
-        data = pytesseract.image_to_data(
-            ocr_image, lang=lang, config=tess_config,
-            output_type=pytesseract.Output.DICT,
-            timeout=config.OCR_TIMEOUT_SECONDS,
+        rows = _run_tesseract_tsv(
+            ocr_path, lang, psm, effective_dpi,
+            char_whitelist, char_blacklist,
         )
-    except pytesseract.TesseractNotFoundError:
-        raise
-    except pytesseract.TesseractError:
-        raise
-    except RuntimeError as exc:
-        raise OCRProcessingError(
-            f"PSM {psm}: Tesseract timeout (> {config.OCR_TIMEOUT_SECONDS}s). "
-            "Image likely too large/noisy, or the Tesseract binary is stuck."
-        ) from exc
+    finally:
+        if cleanup_path is not None:
+            _remove_temp_file(cleanup_path)
 
     words: list[Word] = []
-    n = len(data["text"])
-    for i in range(n):
-        raw_text = data["text"][i].strip()
+    for row in rows:
+        raw_text = row[11].strip()
         if not raw_text:
             continue
 
@@ -212,31 +315,44 @@ def _run_ocr(
             continue
 
         try:
-            conf = float(data["conf"][i])
+            conf = float(row[10])
         except (ValueError, TypeError):
             conf = -1.0
 
         if conf < config.MIN_WORD_CONFIDENCE:
-            continue
+            if conf == 0 and _keep_zero_confidence_word(
+                raw_text, char_whitelist, char_blacklist,
+            ):
+                log.debug(
+                    f"PSM {psm}: keeping zero-confidence word constrained "
+                    f"by a character filter: {raw_text!r}"
+                )
+            else:
+                continue
 
-        width = float(data["width"][i])
-        height = float(data["height"][i])
+        try:
+            left = float(row[6])
+            top = float(row[7])
+            width = float(row[8])
+            height = float(row[9])
+        except (ValueError, TypeError):
+            continue
         if width <= 0 or height <= 0:
             continue
 
         try:
             line_id = (
-                int(data["block_num"][i]) * 1_000_000
-                + int(data["par_num"][i]) * 1_000
-                + int(data["line_num"][i])
+                int(row[2]) * 1_000_000
+                + int(row[3]) * 1_000
+                + int(row[4])
             )
-        except (ValueError, TypeError, KeyError):
+        except (ValueError, TypeError, IndexError):
             line_id = -1
 
         words.append(Word(
             text=raw_text,
-            x=float(data["left"][i]),
-            y=float(data["top"][i]),
+            x=left,
+            y=top,
             width=width,
             height=height,
             confidence=conf,
@@ -304,8 +420,8 @@ def extract_words(
     """Run OCR with automatic PSM selection.
 
     The OCR image is encoded to one temporary file and reused by every PSM
-    pass. This removes the repeated ``Image.save()`` calls pytesseract would
-    otherwise perform for each ``image_to_data()`` invocation.
+    pass. This removes the repeated ``Image.save()`` calls a per-pass temp
+    file would otherwise need.
 
     ocr_slots, if given, is shared by concurrent callers (convert_merge()
     processing several pages at once) and bounds how many Tesseract passes
@@ -319,7 +435,6 @@ def extract_words(
     bl = char_blacklist if char_blacklist is not None else config.TESSERACT_CHAR_BLACKLIST
 
     use_configured_tesseract()
-    tess_base = tessdata_config()
 
     psm_candidates = list(config.TESSERACT_PSM_CANDIDATES)
     if not psm_candidates:
@@ -344,7 +459,7 @@ def extract_words(
             ocr_path = _write_ocr_image(ocr_image)
             if len(psm_candidates) == 1:
                 attempt, error = _safe_run_ocr(
-                    ocr_path, lang, psm_candidates[0], tess_base,
+                    ocr_path, lang, psm_candidates[0],
                     effective_dpi, wl, bl, psm=psm_candidates[0],
                     ocr_slots=slots,
                 )
@@ -363,7 +478,7 @@ def extract_words(
                 executor = ThreadPoolExecutor(max_workers=max_workers)
                 futures = {
                     executor.submit(
-                        _safe_run_ocr, ocr_path, lang, psm, tess_base,
+                        _safe_run_ocr, ocr_path, lang, psm,
                         effective_dpi, wl, bl, psm=psm, ocr_slots=slots,
                     ): psm
                     for psm in psm_candidates
@@ -409,7 +524,7 @@ def extract_words(
             else:
                 for psm in psm_candidates:
                     attempt, error = _safe_run_ocr(
-                        ocr_path, lang, psm, tess_base,
+                        ocr_path, lang, psm,
                         effective_dpi, wl, bl, psm=psm, ocr_slots=slots,
                     )
                     if attempt is not None:

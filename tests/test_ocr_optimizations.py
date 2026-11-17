@@ -19,18 +19,10 @@ def _osd(rotate=0, confidence=10.0):
     return {"rotate": rotate, "orientation_conf": confidence}
 
 
-def _fake_ocr_data():
-    return {
-        "text": ["word"],
-        "conf": [90],
-        "width": [10],
-        "height": [10],
-        "block_num": [1],
-        "par_num": [1],
-        "line_num": [1],
-        "left": [0],
-        "top": [0],
-    }
+def _fake_tsv_rows():
+    return [
+        ["1", "1", "1", "1", "1", "1", "0", "0", "10", "10", "90", "word"],
+    ]
 
 
 def test_osd_uses_configured_tesseract_before_call(monkeypatch):
@@ -135,6 +127,84 @@ def test_osd_detects_real_gross_orientation(rotate):
     assert applied == rotate
 
 
+def test_tesseract_command_preserves_filter_spaces(monkeypatch):
+    monkeypatch.setattr(config, "TESSDATA_DIR", None)
+    whitelist = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz "
+    blacklist = "|`~"
+    cmd = engine._tesseract_command(
+        "page.bmp", "out", "eng", 3, 300, whitelist, blacklist,
+    )
+
+    whitelist_arg = "tessedit_char_whitelist=" + whitelist
+    blacklist_arg = "tessedit_char_blacklist=" + blacklist
+    assert cmd[cmd.index(whitelist_arg) - 1] == "-c"
+    assert cmd[cmd.index(blacklist_arg) - 1] == "-c"
+    assert whitelist_arg.endswith(" ")
+
+
+def test_zero_confidence_whitelist_words_are_kept_only_when_allowed(monkeypatch):
+    rows = [
+        ["1", "1", "1", "1", "1", "1", "0", "0", "10", "10", "0", "quartz"],
+        ["1", "1", "1", "1", "1", "1", "0", "0", "10", "10", "0", "quartz,"],
+        ["1", "1", "1", "1", "1", "1", "0", "0", "10", "10", "0", "bad1"],
+        ["1", "1", "1", "1", "1", "1", "0", "0", "10", "10", "95", "kept"],
+    ]
+    monkeypatch.setattr(engine, "_run_tesseract_tsv", lambda *a, **k: rows)
+
+    attempt = engine._run_ocr(
+        "fake.bmp", "eng", 3, 300,
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ", None,
+    )
+
+    assert [word.text for word in attempt.words] == ["quartz", "kept"]
+
+
+def test_zero_confidence_blacklist_keeps_punctuation_only_words(monkeypatch):
+    rows = [
+        ["1", "1", "1", "1", "1", "1", "0", "0", "10", "10", "0", "quartz"],
+        ["1", "1", "1", "1", "1", "1", "0", "0", "10", "10", "95", "kept"],
+    ]
+    monkeypatch.setattr(engine, "_run_tesseract_tsv", lambda *a, **k: rows)
+
+    attempt = engine._run_ocr("fake.bmp", "eng", 3, 300, None, ".")
+
+    assert [word.text for word in attempt.words] == ["quartz", "kept"]
+
+
+def test_zero_confidence_blacklist_drops_alphanumeric_words(monkeypatch):
+    rows = [
+        ["1", "1", "1", "1", "1", "1", "0", "0", "10", "10", "0", "gebra"],
+        ["1", "1", "1", "1", "1", "1", "0", "0", "10", "10", "95", "kept"],
+    ]
+    monkeypatch.setattr(engine, "_run_tesseract_tsv", lambda *a, **k: rows)
+
+    attempt = engine._run_ocr("fake.bmp", "eng", 3, 300, None, "z")
+
+    assert [word.text for word in attempt.words] == ["kept"]
+
+
+@requires_tesseract
+def test_whitelist_with_space_preserves_word_boundaries():
+    image = Image.new("RGB", (900, 220), "white")
+    draw = ImageDraw.Draw(image)
+    try:
+        from scanlayer.pdf.fonts import _UNICODE_TTF_PATH
+        font = ImageFont.truetype(_UNICODE_TTF_PATH, 48)
+    except OSError:
+        font = ImageFont.load_default()
+    draw.text((30, 70), "Hello World", fill="black", font=font)
+
+    config.configure(
+        psm_candidates=[6], psm_parallel=False, min_word_confidence=35,
+    )
+    result = engine.extract_words(
+        np.array(image.convert("L")), 1.0, 300, lang="eng",
+        char_whitelist="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ",
+    )
+
+    assert len(result.words) >= 2
+
+
 def test_extract_words_encodes_image_once_and_cleans_up(monkeypatch):
     created = []
     original_write = engine._write_ocr_image
@@ -147,11 +217,11 @@ def test_extract_words_encodes_image_once_and_cleans_up(monkeypatch):
     monkeypatch.setattr(engine, "_write_ocr_image", write)
     seen = []
 
-    def fake_image_to_data(image, **kwargs):
+    def fake_tsv(image, *args, **kwargs):
         seen.append((image, os.path.exists(image)))
-        return _fake_ocr_data()
+        return _fake_tsv_rows()
 
-    monkeypatch.setattr(engine.pytesseract, "image_to_data", fake_image_to_data)
+    monkeypatch.setattr(engine, "_run_tesseract_tsv", fake_tsv)
     config.configure(
         psm_candidates=[3, 4, 6, 11], psm_parallel=False,
         min_word_confidence=0, psm_early_exit_confidence=100.0,
@@ -180,10 +250,10 @@ def test_extract_words_cleans_up_when_all_passes_fail(monkeypatch):
 
     monkeypatch.setattr(engine, "_write_ocr_image", write)
 
-    def fail(image, **kwargs):
+    def fail(image, *args, **kwargs):
         raise engine.pytesseract.TesseractError(1, "boom")
 
-    monkeypatch.setattr(engine.pytesseract, "image_to_data", fail)
+    monkeypatch.setattr(engine, "_run_tesseract_tsv", fail)
     config.configure(psm_candidates=[3, 4], psm_parallel=False)
 
     with pytest.raises(OCRProcessingError):
@@ -206,11 +276,11 @@ def test_extract_words_parallel_early_exit_cleans_up(monkeypatch):
 
     monkeypatch.setattr(engine, "_write_ocr_image", write)
 
-    def slow_ok(image, **kwargs):
+    def slow_ok(image, *args, **kwargs):
         time.sleep(0.05)
-        return _fake_ocr_data()
+        return _fake_tsv_rows()
 
-    monkeypatch.setattr(engine.pytesseract, "image_to_data", slow_ok)
+    monkeypatch.setattr(engine, "_run_tesseract_tsv", slow_ok)
     config.configure(
         psm_candidates=[3, 4], psm_parallel=True,
         psm_max_workers=1, psm_early_exit_confidence=0.0,

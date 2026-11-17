@@ -279,14 +279,14 @@ def test_slots_bound_concurrent_tesseract_passes_and_are_released(monkeypatch):
     slots = threading.BoundedSemaphore(2)
 
     def one(_):
-        return engine._safe_run_ocr(None, "eng", 3, "", 300, None, None, psm=3, ocr_slots=slots)
+        return engine._safe_run_ocr(None, "eng", 3, 300, None, None, psm=3, ocr_slots=slots)
 
     with ThreadPoolExecutor(max_workers=6) as pool:
         list(pool.map(one, range(6)))
     assert state["max"] == 2
 
     failing = engine._safe_run_ocr(
-        None, "eng", 3, "", 300, None, None, psm=3, ocr_slots=slots, fail=True,
+        None, "eng", 3, 300, None, None, psm=3, ocr_slots=slots, fail=True,
     )
     assert failing[0] is None
     assert sum(1 for _ in range(5) if slots.acquire(blocking=False)) == 2
