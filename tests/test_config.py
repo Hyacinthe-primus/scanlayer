@@ -21,6 +21,12 @@ def test_configure_osd_timeout():
     assert config.get_settings()["osd_timeout_seconds"] == 12
 
 
+def test_configure_denoising_search_window():
+    config.configure(denoising_search_window=7)
+    assert config.DENOISING_SEARCH_WINDOW == 7
+    assert config.get_settings()["denoising_search_window"] == 7
+
+
 def test_configure_unknown_key_raises():
     with pytest.raises(ValueError, match="unknown option"):
         config.configure(not_a_real_setting="x")

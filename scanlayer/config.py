@@ -133,6 +133,10 @@ UNSHARP_SIGMA = 1.2
 PREPROCESS_TRY_ADAPTIVE_THRESHOLD = False
 
 DENOISING_H = 10
+# Non-local-means search window. OpenCV's default is 21; 11 is the
+# conservative default here, and 7 is available for a larger speed win.
+# Must be an odd integer >= 3.
+DENOISING_SEARCH_WINDOW = 11
 
 CLAHE_CLIP_LIMIT = 2.0
 CLAHE_TILE_GRID = (8, 8)
@@ -180,6 +184,8 @@ _CONFIGURABLE_KEYS = {
     "ocr_timeout_seconds": "OCR_TIMEOUT_SECONDS",
     "osd_timeout_seconds": "OSD_TIMEOUT_SECONDS",
     "ocr_max_concurrency": "OCR_MAX_CONCURRENCY",
+    "denoising_h": "DENOISING_H",
+    "denoising_search_window": "DENOISING_SEARCH_WINDOW",
     "char_whitelist": "TESSERACT_CHAR_WHITELIST",
     "char_blacklist": "TESSERACT_CHAR_BLACKLIST",
     "jpeg_quality": "PDF_JPEG_QUALITY",

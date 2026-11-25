@@ -323,6 +323,41 @@ def _remove_shadows(gray: np.ndarray) -> np.ndarray:
     return cv2.divide(gray, background, scale=255)
 
 
+def _denoise_ocr_image(gray: np.ndarray) -> np.ndarray:
+    """Apply non-local-means denoising with validated OpenCV parameters.
+
+    The search window is the dominant cost of this stage. It stays
+    configurable so the conservative default and the faster 7-pixel window
+    can be compared without changing the algorithm.
+    """
+    window = config.DENOISING_SEARCH_WINDOW
+    if isinstance(window, bool) or not isinstance(window, int):
+        raise ValueError(
+            "DENOISING_SEARCH_WINDOW must be an odd integer >= 3, "
+            f"got {window!r}."
+        )
+    if window < 3 or window % 2 == 0:
+        raise ValueError(
+            "DENOISING_SEARCH_WINDOW must be an odd integer >= 3, "
+            f"got {window!r}."
+        )
+    strength = config.DENOISING_H
+    if isinstance(strength, bool) or not isinstance(strength, (int, float)):
+        raise ValueError(
+            f"DENOISING_H must be a non-negative number, got {strength!r}."
+        )
+    if strength < 0:
+        raise ValueError(
+            f"DENOISING_H must be a non-negative number, got {strength!r}."
+        )
+    return cv2.fastNlMeansDenoising(
+        gray,
+        h=strength,
+        templateWindowSize=7,
+        searchWindowSize=window,
+    )
+
+
 def _sharpen(gray: np.ndarray) -> np.ndarray:
     """Light unsharp mask after denoising/CLAHE to recover edge definition."""
     amount = config.UNSHARP_AMOUNT
@@ -382,7 +417,7 @@ def _build_ocr_image(
 
     gray = _remove_shadows(gray)
 
-    denoised = cv2.fastNlMeansDenoising(gray, h=config.DENOISING_H)
+    denoised = _denoise_ocr_image(gray)
 
     clahe = cv2.createCLAHE(
         clipLimit=config.CLAHE_CLIP_LIMIT,

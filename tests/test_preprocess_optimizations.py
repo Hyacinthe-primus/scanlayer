@@ -2,8 +2,35 @@
 
 import cv2
 import numpy as np
+import pytest
 
+from scanlayer import config
 from scanlayer.preprocessing import enhance
+
+
+def test_denoise_uses_configured_search_window(monkeypatch):
+    seen = {}
+
+    def fake_denoise(gray, **kwargs):
+        seen.update(kwargs)
+        return gray
+
+    monkeypatch.setattr(enhance.cv2, "fastNlMeansDenoising", fake_denoise)
+    config.configure(denoising_search_window=7)
+
+    result = enhance._denoise_ocr_image(np.zeros((8, 8), dtype=np.uint8))
+
+    assert result.shape == (8, 8)
+    assert seen["searchWindowSize"] == 7
+    assert seen["templateWindowSize"] == 7
+    assert seen["h"] == config.DENOISING_H
+
+
+@pytest.mark.parametrize("value", [4, 2, 0, -1, "7", True])
+def test_denoise_rejects_invalid_search_window(monkeypatch, value):
+    monkeypatch.setattr(config, "DENOISING_SEARCH_WINDOW", value)
+    with pytest.raises(ValueError, match="odd integer"):
+        enhance._denoise_ocr_image(np.zeros((8, 8), dtype=np.uint8))
 
 
 def test_build_ocr_image_upscales_after_filters(monkeypatch):
@@ -17,7 +44,8 @@ def test_build_ocr_image_upscales_after_filters(monkeypatch):
     monkeypatch.setattr(enhance, "_remove_shadows", fake_shadow)
     monkeypatch.setattr(enhance, "_sharpen", lambda gray: gray)
     monkeypatch.setattr(
-        enhance.cv2, "fastNlMeansDenoising", lambda gray, h: gray,
+        enhance.cv2, "fastNlMeansDenoising",
+        lambda gray, h, **kwargs: gray,
     )
 
     image = np.full((200, 1200, 3), 240, dtype=np.uint8)
@@ -41,7 +69,8 @@ def test_build_ocr_image_keeps_resize_first_for_small_upscale(monkeypatch):
     monkeypatch.setattr(enhance, "_remove_shadows", fake_shadow)
     monkeypatch.setattr(enhance, "_sharpen", lambda gray: gray)
     monkeypatch.setattr(
-        enhance.cv2, "fastNlMeansDenoising", lambda gray, h: gray,
+        enhance.cv2, "fastNlMeansDenoising",
+        lambda gray, h, **kwargs: gray,
     )
 
     image = np.full((200, 2480, 3), 240, dtype=np.uint8)
@@ -64,7 +93,8 @@ def test_build_ocr_image_downscales_before_filters(monkeypatch):
     monkeypatch.setattr(enhance, "_remove_shadows", fake_shadow)
     monkeypatch.setattr(enhance, "_sharpen", lambda gray: gray)
     monkeypatch.setattr(
-        enhance.cv2, "fastNlMeansDenoising", lambda gray, h: gray,
+        enhance.cv2, "fastNlMeansDenoising",
+        lambda gray, h, **kwargs: gray,
     )
 
     image = np.full((400, 4000, 3), 240, dtype=np.uint8)
