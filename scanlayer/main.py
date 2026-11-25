@@ -9,6 +9,8 @@ from __future__ import annotations
 import glob
 import os
 import shutil
+import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -560,55 +562,115 @@ def _expand_pdf_input(
     return out_paths
 
 
+def _pdftoppm_subprocess_kwargs() -> dict:
+    """Hide the poppler child console window on Windows."""
+    if sys.platform != "win32":
+        return {}
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startupinfo.wShowWindow = subprocess.SW_HIDE
+    return {"startupinfo": startupinfo}
+
+
+def _run_pdftoppm(cmd: list[str]) -> subprocess.CompletedProcess:
+    """Run one poppler rasterization command.
+
+    Kept as a separate seam so tests can replace the subprocess boundary
+    without patching global subprocess state.
+    """
+    return subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        **_pdftoppm_subprocess_kwargs(),
+    )
+
+
 def _rasterize_pdf_pages(
     path: str, first_page: int, last_page: int,
     dpi: Optional[int], tmp_dir: str,
 ) -> tuple[list[str], str]:
-    """Rasterize a bounded page range into a unique per-chunk directory."""
-    try:
-        from pdf2image import convert_from_path
-        from pdf2image.exceptions import PDFInfoNotInstalledError
-    except ImportError as exc:
-        raise DependencyError(
-            "PDF input requires the 'pdf2image' package: "
-            "pip install pdf2image"
-        ) from exc
+    """Rasterize a bounded page range into a unique per-chunk directory.
 
+    This invokes ``pdftoppm`` directly instead of going through
+    ``pdf2image.convert_from_path``. The latter runs ``pdfinfo`` again for
+    every chunk and adds Python-level path handling, which dominated small
+    and medium PDF batches. Direct poppler output is byte-identical PPM.
+    """
     raster_dpi = dpi or config.DEFAULT_DPI
     job_dir = tempfile.mkdtemp(prefix="scanlayer_pdf_page_", dir=tmp_dir)
+    prefix = os.path.join(job_dir, "page")
+
     try:
-        page_paths = convert_from_path(
+        executable = shutil.which("pdftoppm")
+        if not executable:
+            raise DependencyError(
+                "PDF input requires poppler-utils (the 'pdftoppm'/'pdfinfo' "
+                "binaries) on PATH. 'pip install pdf2image' alone is not "
+                "enough, poppler is a separate system package "
+                "(apt install poppler-utils / brew install poppler / "
+                "download poppler for Windows and add it to PATH)."
+            )
+
+        cmd = [
+            executable,
+            "-r", str(raster_dpi),
+            "-f", str(first_page),
+            "-l", str(last_page),
             path,
-            dpi=raster_dpi,
-            first_page=first_page,
-            last_page=last_page,
-            output_folder=job_dir,
-            fmt="ppm",
-            paths_only=True,
-            thread_count=1,
-        )
-    except PDFInfoNotInstalledError as exc:
+            prefix,
+        ]
+        try:
+            proc = _run_pdftoppm(cmd)
+        except FileNotFoundError as exc:
+            raise DependencyError(
+                "PDF input requires poppler-utils (the 'pdftoppm'/'pdfinfo' "
+                "binaries) on PATH. 'pip install pdf2image' alone is not "
+                "enough, poppler is a separate system package "
+                "(apt install poppler-utils / brew install poppler / "
+                "download poppler for Windows and add it to PATH)."
+            ) from exc
+
+        if proc.returncode != 0:
+            detail = (proc.stderr or proc.stdout or "").strip()
+            raise InputFileError(
+                f"'{path}' pages {first_page}-{last_page}: could not "
+                f"rasterize (pdftoppm exited {proc.returncode}"
+                + (f": {detail}" if detail else "")
+                + ")."
+            )
+
+        page_paths = glob.glob(prefix + "*.ppm")
+
+        def page_number(page_path: str) -> int:
+            stem = os.path.splitext(os.path.basename(page_path))[0]
+            try:
+                return int(stem.rsplit("-", 1)[1])
+            except (IndexError, ValueError):
+                return -1
+
+        page_paths.sort(key=page_number)
+        expected = list(range(first_page, last_page + 1))
+        if not page_paths or [page_number(p) for p in page_paths] != expected:
+            raise InputFileError(
+                f"'{path}' pages {first_page}-{last_page}: pdftoppm did not "
+                "produce the expected page files."
+            )
+        return page_paths, job_dir
+    except (DependencyError, InputFileError):
         shutil.rmtree(job_dir, ignore_errors=True)
-        raise DependencyError(
-            "PDF input requires poppler-utils (the 'pdftoppm'/'pdfinfo' "
-            "binaries) on PATH. 'pip install pdf2image' alone is not "
-            "enough, poppler is a separate system package "
-            "(apt install poppler-utils / brew install poppler / "
-            "download poppler for Windows and add it to PATH)."
-        ) from exc
+        raise
     except Exception as exc:
         shutil.rmtree(job_dir, ignore_errors=True)
         raise InputFileError(
             f"'{path}' pages {first_page}-{last_page}: could not rasterize "
             f"({type(exc).__name__}: {exc})"
         ) from exc
-
-    if not page_paths:
+    except BaseException:
         shutil.rmtree(job_dir, ignore_errors=True)
-        raise InputFileError(
-            f"'{path}' pages {first_page}-{last_page}: no rasterized pages."
-        )
-    return page_paths, job_dir
+        raise
 
 
 def _rasterize_pdf_page(

@@ -1,6 +1,7 @@
 """Phase 5D-2 tests for incremental, one-page-at-a-time PDF input."""
 
 import os
+import shutil
 import tempfile
 import threading
 import time
@@ -156,11 +157,82 @@ def test_rasterization_failure_cleans_owned_directory(monkeypatch, tmp_path):
     def fail(*args, **kwargs):
         raise RuntimeError("raster failed")
 
-    import pdf2image
-    monkeypatch.setattr(pdf2image, "convert_from_path", fail)
+    monkeypatch.setattr(main_module, "_run_pdftoppm", fail)
     with pytest.raises(InputFileError):
         _rasterize_pdf_page(pdf, 1, 300, str(target))
     assert list(target.iterdir()) == []
+
+
+def test_rasterization_missing_poppler_cleans_directory(monkeypatch, tmp_path):
+    pdf = _dummy_pdf(tmp_path / "report.pdf")
+    target = tmp_path / "pages"
+    target.mkdir()
+    monkeypatch.setattr(main_module.shutil, "which", lambda name: None)
+
+    with pytest.raises(main_module.DependencyError):
+        _rasterize_pdf_page(pdf, 1, 300, str(target))
+    assert list(target.iterdir()) == []
+
+
+def test_rasterization_interrupt_cleans_directory(monkeypatch, tmp_path):
+    pdf = _dummy_pdf(tmp_path / "report.pdf")
+    target = tmp_path / "pages"
+    target.mkdir()
+
+    def interrupt(cmd):
+        raise KeyboardInterrupt()
+
+    monkeypatch.setattr(main_module, "_run_pdftoppm", interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        _rasterize_pdf_page(pdf, 1, 300, str(target))
+    assert list(target.iterdir()) == []
+
+
+def test_rasterization_incomplete_output_cleans_directory(monkeypatch, tmp_path):
+    pdf = _dummy_pdf(tmp_path / "report.pdf")
+    target = tmp_path / "pages"
+    target.mkdir()
+
+    def incomplete(cmd):
+        with open(f"{cmd[-1]}-1.ppm", "wb") as fh:
+            fh.write(b"P6\n1 1\n255\n\x00\x00\x00")
+        return type(
+            "Completed", (), {"returncode": 0, "stdout": "", "stderr": ""},
+        )()
+
+    monkeypatch.setattr(main_module, "_run_pdftoppm", incomplete)
+    with pytest.raises(InputFileError, match="expected page files"):
+        main_module._rasterize_pdf_pages(pdf, 1, 2, 300, str(target))
+    assert list(target.iterdir()) == []
+
+
+def test_rasterized_pages_are_sorted_numerically(monkeypatch, tmp_path):
+    pdf = _dummy_pdf(tmp_path / "report.pdf")
+    tmp_dir = tmp_path / "tmp"
+    tmp_dir.mkdir()
+    calls = []
+
+    def fake_run(cmd):
+        calls.append(cmd)
+        prefix = cmd[-1]
+        for page in (10, 2, 5, 3, 4, 6, 7, 8, 9):
+            with open(f"{prefix}-{page}.ppm", "wb") as fh:
+                fh.write(b"P6\n1 1\n255\n\x00\x00\x00")
+        return type(
+            "Completed", (), {"returncode": 0, "stdout": "", "stderr": ""},
+        )()
+
+    monkeypatch.setattr(main_module, "_run_pdftoppm", fake_run)
+    paths, job_dir = main_module._rasterize_pdf_pages(
+        pdf, 2, 10, 300, str(tmp_dir),
+    )
+
+    assert [os.path.basename(p) for p in paths] == [
+        f"page-{page}.ppm" for page in range(2, 11)
+    ]
+    assert calls[0][-1].endswith("page")
+    assert os.path.isdir(job_dir)
+    shutil.rmtree(job_dir, ignore_errors=True)
 
 
 def test_same_stem_pdfs_collide_before_execution(monkeypatch, tmp_path):
