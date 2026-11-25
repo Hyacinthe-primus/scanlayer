@@ -130,6 +130,12 @@ def test_binary_detection_matches_old_histogram_rule():
     assert _is_mostly_binary(image) is expected
 
 
+def test_binary_detection_with_reused_grayscale_matches_default():
+    for image in (_binary_image(), _grayscale_image(), _color_image()):
+        grayscale = image if image.mode == "L" else image.convert("L")
+        assert _is_mostly_binary(image, grayscale=grayscale) == _is_mostly_binary(image)
+
+
 def test_grayscale_detection_falls_back_for_ambiguous_sample():
     # 3% colored pixels: sampled fraction is near the 2% threshold, so the
     # exact full-image calculation must decide (and return False).
@@ -213,3 +219,75 @@ def test_pdf_build_does_not_change_reportlab_ascii85_setting(tmp_path):
         _binary_image(), _text_words(), str(tmp_path / "global.pdf"), dpi=200,
     )
     assert rl_config.useA85 == before
+
+
+def test_jpeg_background_temp_file_is_removed_after_build(tmp_path, monkeypatch):
+    from scanlayer.pdf import builder
+
+    paths = []
+    original = builder._as_jpeg_file
+
+    def tracked(image, quality):
+        path = original(image, quality)
+        paths.append(path)
+        return path
+
+    monkeypatch.setattr(builder, "_as_jpeg_file", tracked)
+    build_searchable_pdf(
+        _color_image(), _text_words(), str(tmp_path / "color.pdf"), dpi=200,
+    )
+
+    assert len(paths) == 1
+    assert not os.path.exists(paths[0])
+    assert str(tmp_path) not in paths[0]
+
+
+def test_jpeg_background_temp_file_is_removed_on_draw_failure(monkeypatch):
+    from scanlayer.pdf import builder
+
+    paths = []
+    original = builder._as_jpeg_file
+
+    def tracked(image, quality):
+        path = original(image, quality)
+        paths.append(path)
+        return path
+
+    monkeypatch.setattr(builder, "_as_jpeg_file", tracked)
+
+    with pytest.raises(RuntimeError, match="draw failed"):
+        with builder._background_for_pdf(_color_image(), 82) as arg:
+            paths.append(arg)
+            raise RuntimeError("draw failed")
+
+    assert not os.path.exists(paths[0])
+
+
+def test_concurrent_jpeg_background_files_are_unique(tmp_path, monkeypatch):
+    from scanlayer.pdf import builder
+
+    paths = []
+    original = builder._as_jpeg_file
+
+    def tracked(image, quality):
+        path = original(image, quality)
+        paths.append(path)
+        return path
+
+    monkeypatch.setattr(builder, "_as_jpeg_file", tracked)
+
+    from scanlayer.pdf.fonts import resolve_font
+    resolve_font("eng")
+
+    def build(index):
+        out = tmp_path / f"color_{index}.pdf"
+        build_searchable_pdf(_color_image(), _text_words(), str(out), dpi=200)
+        return out
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        outputs = list(pool.map(build, range(4)))
+
+    assert len(paths) == 4
+    assert len(set(paths)) == 4
+    assert all(not os.path.exists(path) for path in paths)
+    assert all(path.exists() for path in outputs)

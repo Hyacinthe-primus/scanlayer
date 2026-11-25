@@ -7,8 +7,10 @@ Page sized to background image, background drawn with adaptive compression
 
 from __future__ import annotations
 
-import io
 import os
+import tempfile
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Optional
 
@@ -92,18 +94,23 @@ def _is_mostly_grayscale(image: Image.Image, threshold: float = None) -> bool:
     return fraction_colored < threshold
 
 
-def _is_mostly_binary(image: Image.Image) -> bool:
+def _is_mostly_binary(
+    image: Image.Image, grayscale: Optional[Image.Image] = None,
+) -> bool:
     """Detect if an image is near-binary (black text on white background).
 
     For near-binary content, lossless flate is smaller than JPEG. PIL's
     histogram runs in C over the 8-bit data and gives exactly the same 8-bin
     extreme fraction as the previous float32 NumPy histogram, without a
     full-image float allocation.
+
+    ``grayscale`` may be supplied by a caller that already converted the
+    image, so the full-image conversion is not repeated.
     """
-    if image.mode != "L":
-        image = image.convert("L")
-    hist = image.histogram()
-    total = image.width * image.height
+    if grayscale is None:
+        grayscale = image if image.mode == "L" else image.convert("L")
+    hist = grayscale.histogram()
+    total = grayscale.width * grayscale.height
     if total == 0:
         return False
     # np.histogram(..., bins=8, range=(0, 256)) used bins 0 and 7.
@@ -116,18 +123,47 @@ def _is_mostly_binary(image: Image.Image) -> bool:
     return is_binary
 
 
-def _as_jpeg_reader(image: Image.Image, quality: int) -> ImageReader:
-    """Encodes the image as JPEG in a memory buffer and returns an
-    ImageReader for ReportLab."""
-    buffer = io.BytesIO()
-    image.convert("RGB").save(
-        buffer, format="JPEG", quality=quality, optimize=True,
+
+def _remove_temp_file(path: str) -> None:
+    """Remove a temporary PDF background, tolerating Windows file locks."""
+    last_error = None
+    for attempt in range(4):
+        try:
+            os.unlink(path)
+            return
+        except FileNotFoundError:
+            return
+        except OSError as exc:
+            last_error = exc
+            time.sleep(0.05 * (attempt + 1))
+    log_warning(
+        log,
+        f"Could not remove temporary PDF background {path}: {last_error}",
     )
-    buffer.seek(0)
-    return ImageReader(buffer)
 
 
-def _as_lossless_reader(image: Image.Image) -> ImageReader:
+def _as_jpeg_file(image: Image.Image, quality: int) -> str:
+    """Encode the JPEG background to a temp file and return its path.
+
+    Passing a file path to ReportLab avoids the full raw-image decode/hash
+    performed for an in-memory ImageReader, and keeps the encoded bytes out
+    of the Python heap. The caller deletes the file after drawImage().
+    """
+    fd, path = tempfile.mkstemp(prefix="scanlayer_bg_", suffix=".jpg")
+    os.close(fd)
+    try:
+        image.convert("RGB").save(
+            path, format="JPEG", quality=quality, optimize=True,
+        )
+    except Exception:
+        _remove_temp_file(path)
+        raise
+    return path
+
+
+def _as_lossless_reader(
+    image: Image.Image, grayscale: Optional[Image.Image] = None,
+) -> ImageReader:
     """Pass a PIL image directly to ReportLab for lossless flate embedding.
 
     ReportLab accepts RGB and L PIL images natively and flate-compresses the
@@ -135,7 +171,7 @@ def _as_lossless_reader(image: Image.Image) -> ImageReader:
     """
     if _is_mostly_grayscale(image):
         if image.mode != "L":
-            image = image.convert("L")
+            image = grayscale if grayscale is not None else image.convert("L")
         log.info("Background compression: lossless grayscale (flate)")
     else:
         if image.mode != "RGB":
@@ -144,22 +180,31 @@ def _as_lossless_reader(image: Image.Image) -> ImageReader:
     return ImageReader(image)
 
 
-def _select_background_reader(
-    image: Image.Image, jpeg_quality: int
-) -> ImageReader:
-    """Chooses the best compression strategy for the PDF background.
+@contextmanager
+def _background_for_pdf(
+    image: Image.Image, jpeg_quality: int,
+):
+    """Yield the ReportLab background argument and clean up its temp file.
 
-    1. Near-binary -> direct lossless flate (L when grayscale, RGB otherwise).
-    2. Otherwise -> JPEG at the configured quality.
-
-    ASCII85 is intentionally left at ReportLab's process-global default.
-    Disabling it would add a global side effect for other ReportLab users and
-    concurrent PDF generation; the safe per-document API does not expose it.
+    Lossless pages keep the direct PIL ImageReader path. JPEG pages use a
+    file-backed DCT stream so ReportLab does not decode the image into a
+    second full-resolution RGB buffer.
     """
-    if config.PDF_ADAPTIVE_COMPRESSION and _is_mostly_binary(image):
-        return _as_lossless_reader(image)
+    if config.PDF_ADAPTIVE_COMPRESSION:
+        grayscale = image if image.mode == "L" else image.convert("L")
+        if _is_mostly_binary(image, grayscale=grayscale):
+            yield _as_lossless_reader(image, grayscale=grayscale)
+            return
+        # Release the grayscale buffer before JPEG encoding so the JPEG path
+        # never retains an extra full-resolution image.
+        del grayscale
+
     log.info(f"Background compression: JPEG q={jpeg_quality}")
-    return _as_jpeg_reader(image, jpeg_quality)
+    path = _as_jpeg_file(image, jpeg_quality)
+    try:
+        yield path
+    finally:
+        _remove_temp_file(path)
 
 
 def _font_size_for_height(height_px: float, px_to_pt: float) -> float:
@@ -233,12 +278,12 @@ def _draw_page(
 
     c.setPageSize((page_width_pt, page_height_pt))
 
-    bg_reader = _select_background_reader(background, jpeg_quality)
-    c.drawImage(
-        bg_reader, 0, 0,
-        width=page_width_pt, height=page_height_pt,
-        preserveAspectRatio=False,
-    )
+    with _background_for_pdf(background, jpeg_quality) as bg_reader:
+        c.drawImage(
+            bg_reader, 0, 0,
+            width=page_width_pt, height=page_height_pt,
+            preserveAspectRatio=False,
+        )
 
     skipped = 0
     for word in words:
