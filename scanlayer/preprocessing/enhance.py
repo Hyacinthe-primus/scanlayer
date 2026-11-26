@@ -102,13 +102,19 @@ def _fix_gross_orientation(image: Image.Image) -> tuple[Image.Image, int]:
     use_configured_tesseract()
     osd_image = image
     owns_osd_image = False
-    if max(image.size) > _OSD_THUMBNAIL_MAX_DIM:
-        osd_image = image.copy()
+    if osd_image.mode != "L":
+        # OSD converts to grayscale internally. Do it here once so the
+        # thumbnail and the Tesseract child process handle one channel.
+        osd_image = osd_image.convert("L")
+        owns_osd_image = True
+    if max(osd_image.size) > _OSD_THUMBNAIL_MAX_DIM:
+        if not owns_osd_image:
+            osd_image = osd_image.copy()
+            owns_osd_image = True
         osd_image.thumbnail(
             (_OSD_THUMBNAIL_MAX_DIM, _OSD_THUMBNAIL_MAX_DIM),
             Image.Resampling.LANCZOS,
         )
-        owns_osd_image = True
 
     rotate = 0
     confidence = 0.0

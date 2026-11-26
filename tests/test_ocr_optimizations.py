@@ -64,16 +64,61 @@ def test_osd_runs_on_capped_thumbnail(monkeypatch):
 
     def fake_osd(image, **kwargs):
         seen["size"] = image.size
+        seen["mode"] = image.mode
         return _osd()
 
     monkeypatch.setattr(enhance.pytesseract, "image_to_osd", fake_osd)
     enhance._fix_gross_orientation(Image.new("RGB", (3000, 2000), "white"))
 
     assert max(seen["size"]) <= enhance._OSD_THUMBNAIL_MAX_DIM
+    assert seen["mode"] == "L"
+
+
+def test_osd_receives_grayscale_input(monkeypatch):
+    seen = {}
+
+    def fake_osd(image, **kwargs):
+        seen["mode"] = image.mode
+        return {
+            "rotate": 90,
+            "orientation_conf": 10.0,
+            "script": "Latin",
+        }
+
+    monkeypatch.setattr(enhance.pytesseract, "image_to_osd", fake_osd)
+    result, rotation = enhance._fix_gross_orientation(
+        Image.new("RGB", (300, 500), "white")
+    )
+
+    assert seen["mode"] == "L"
+    assert rotation == 90
+    assert result.size == (500, 300)
+
+
+def test_exif_orientation_is_preserved_with_grayscale_osd(monkeypatch):
+    seen = {}
+
+    def fake_osd(image, **kwargs):
+        seen["mode"] = image.mode
+        return _osd(rotate=0)
+
+    monkeypatch.setattr(enhance.pytesseract, "image_to_osd", fake_osd)
+    image = Image.new("RGB", (100, 200), "white")
+    image.getexif()[0x0112] = 6
+
+    result = enhance.preprocess(image, dpi=300, orientation=None)
+
+    assert result.exif_orientation_applied == 6
+    assert result.gross_rotation_applied == 0
+    assert seen["mode"] == "L"
+    result.background.close()
 
 
 def test_osd_timeout_is_graceful(monkeypatch):
+    seen = {}
+
     def fake_osd(image, **kwargs):
+        seen["mode"] = image.mode
         raise RuntimeError("Tesseract process timeout")
 
     monkeypatch.setattr(enhance.pytesseract, "image_to_osd", fake_osd)
@@ -82,6 +127,7 @@ def test_osd_timeout_is_graceful(monkeypatch):
 
     assert result is image
     assert rotation == 0
+    assert seen["mode"] == "L"
 
 
 @pytest.mark.parametrize("rotate", [0, 90, 180, 270])
