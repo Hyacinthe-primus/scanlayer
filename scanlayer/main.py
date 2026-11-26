@@ -234,7 +234,30 @@ def _pdf_page_logical_path(
 
 
 def _pdf_page_count(path: str) -> int:
-    """Read PDF page count via pdfinfo without rasterizing pages."""
+    """Read PDF page count via pypdf when available, else pdfinfo.
+
+    pypdf avoids a poppler process startup per PDF, but it is optional.
+    Any import, parsing, decryption, or page-count failure falls back to the
+    existing pdfinfo behavior so its validation and error contract remain
+    authoritative.
+    """
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        PdfReader = None
+
+    if PdfReader is not None:
+        try:
+            with open(path, "rb") as stream:
+                pages = len(PdfReader(stream).pages)
+        except Exception:
+            # Do not hide cancellation/system-exit: those derive from
+            # BaseException, not Exception. Everything else falls back to
+            # the authoritative pdfinfo validation below.
+            pages = 0
+        if isinstance(pages, int) and not isinstance(pages, bool) and pages > 0:
+            return pages
+
     try:
         from pdf2image import pdfinfo_from_path
         from pdf2image.exceptions import PDFInfoNotInstalledError
